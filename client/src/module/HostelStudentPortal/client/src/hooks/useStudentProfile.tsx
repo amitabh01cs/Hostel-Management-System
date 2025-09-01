@@ -11,7 +11,7 @@ export function useStudentProfile() {
       return;
     }
 
-    fetch(`https://backend-hostel-module-production.up.railway.app/api/student/me?email=${encodeURIComponent(email)}`)
+    fetch(`https://backend-hostel-module-production-iist.up.railway.app/api/student/me?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(data => {
         if (data.error) {
