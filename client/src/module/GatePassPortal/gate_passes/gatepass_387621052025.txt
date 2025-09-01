@@ -1,0 +1,28 @@
+GATE PASS / LEAVE PERMIT
+======================
+Serial Number: 387621052025
+Date: 21-05-2025
+
+STUDENT DETAILS
+--------------
+Name: Katavya Agrawal
+Room No: 006
+Branch: CS
+Year: 1st
+
+PASS DETAILS
+-----------
+Pass Type: DAYS
+From: 01-05-2025
+To: 05-05-2025
+Address during leave: Indore
+Contact Number: 79874-67150
+Purpose: Haircut
+
+GUARDIAN INFORMATION
+------------------
+Local Guardian: N/A
+Local Guardian Address: N/A
+
+Status: PENDING APPROVAL
+Generated on: 5/21/2025, 4:08:19 PM

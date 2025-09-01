@@ -1,0 +1,28 @@
+GATE PASS / LEAVE PERMIT
+======================
+Serial Number: 816921052025
+Date: 21-05-2025
+
+STUDENT DETAILS
+--------------
+Name: Katavya Agrawa
+Room No: 001
+Branch: cse
+Year: 1
+
+PASS DETAILS
+-----------
+Pass Type: HOUR
+From: 01:01
+To: 15:15
+Address during leave: SDFGHJK
+Contact Number: 78945-78945
+Purpose: HJKL
+
+GUARDIAN INFORMATION
+------------------
+Local Guardian: N/A
+Local Guardian Address: N/A
+
+Status: PENDING APPROVAL
+Generated on: 5/21/2025, 4:35:03 PM

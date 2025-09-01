@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>  
+  <meta charset="UTF-8">
+  <title>Gate Pass Generator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { display: flex; flex-direction: row; gap: 40px; }
+    .form-group { margin-bottom: 10px; }
+    .preview { border: 1px solid #000; padding: 20px; width: 500px; background: #fff; }
+    #qrcode { margin-top: 20px; }
+    h2, h3 { text-align: center; }
+    button { margin-right: 10px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Gate Pass Generator</h2>
+  <div class="container">
+    <div>
+      <div class="form-group">
+        <label>Names (comma separated):</label><br>
+        <input type="text" id="names" />
+      </div>
+      <div class="form-group">
+        <label>Room Numbers:</label><br>
+        <input type="text" id="rooms" />
+      </div>
+      <div class="form-group">
+        <label>Branch/Year:</label><br>
+        <input type="text" id="branch" />
+      </div>
+      <div class="form-group">
+        <label>Address During Leave:</label><br>
+        <input type="text" id="address" />
+      </div>
+      <div class="form-group">
+        <label>Contact Number (WhatsApp):</label><br>
+        <input type="text" id="contact" />
+      </div>
+      <div class="form-group">
+        <label>Purpose:</label><br>
+        <input type="text" id="purpose" />
+      </div>
+      <div class="form-group">
+        <label>Out Time:</label><br>
+        <input type="time" id="outtime" />
+      </div>
+      <div class="form-group">
+        <label>In Time:</label><br>
+        <input type="time" id="intime" />
+      </div>
+      <button onclick="generatePass()">Generate & Send on WhatsApp</button>
+      <button onclick="downloadPass()">Download Pass</button>
+      <button onclick="sendRequestToWarden()">Send Request to Warden</button>
+      <p id="locationStatus" style="color: green;"></p>
+    </div>
+
+    <div class="preview" id="passPreview">
+      <h3>IIST BOYS / GIRLS HOSTEL</h3>
+      <p>Affiliated to - RGPV (Bhopal) | DAVV (Indore)</p>
+      <p><strong>Gate Pass / Leave Permit</strong></p>
+      <p><strong>Sr. No:</strong> <span id="srno">---</span></p>
+      <p><strong>Date:</strong> <span id="date">---</span></p>
+      <p><strong>Name(s):</strong> <span id="pnames">---</span></p>
+      <p><strong>Room No:</strong> <span id="prooms">---</span> | <strong>Branch/Yr:</strong> <span id="pbranch">---</span></p>
+      <p><strong>Leave Period:</strong> <span id="leavePeriod">NA to NA</span></p>
+      <p><strong>Address During Leave:</strong> <span id="paddress">---</span></p>
+      <p><strong>Contact No:</strong> <span id="pcontact">---</span></p>
+      <p><strong>Purpose:</strong> <span id="ppurpose">---</span></p>
+      <p><strong>Out Time:</strong> <span id="pout">---</span> | <strong>In Time:</strong> <span id="pin">---</span></p>
+      <p><strong>Location:</strong> <span id="gpsLocation">Tracking...</span></p>
+      <div id="qrcode"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <script>
+    let currentLocation = "Fetching...";
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.watchPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          currentLocation = `https://www.google.com/maps?q=${latitude},${longitude}`;
+          document.getElementById("gpsLocation").innerText = currentLocation;
+          document.getElementById("locationStatus").innerText = "Location acquired!";
+        },
+        error => {
+          currentLocation = "Location access denied";
+          document.getElementById("gpsLocation").innerText = currentLocation;
+          document.getElementById("locationStatus").innerText = "Location access failed!";
+        }
+      );
+    } else {
+      currentLocation = "Geolocation not supported";
+    }
+
+    function generatePass() {
+      const fields = ["names", "rooms", "branch", "address", "contact", "purpose", "outtime", "intime"];
+      for (let field of fields) {
+        if (!document.getElementById(field).value.trim()) {
+          alert("Please fill all fields!");
+          return;
+        }
+      }
+
+      const sr = Math.floor(Math.random() * 9000) + 1000;
+      const today = new Date().toLocaleDateString();
+
+      document.getElementById("srno").innerText = sr;
+      document.getElementById("date").innerText = today;
+      document.getElementById("pnames").innerText = document.getElementById("names").value;
+      document.getElementById("prooms").innerText = document.getElementById("rooms").value;
+      document.getElementById("pbranch").innerText = document.getElementById("branch").value;
+      document.getElementById("paddress").innerText = document.getElementById("address").value;
+      document.getElementById("pcontact").innerText = document.getElementById("contact").value;
+      document.getElementById("ppurpose").innerText = document.getElementById("purpose").value;
+      document.getElementById("pout").innerText = document.getElementById("outtime").value;
+      document.getElementById("pin").innerText = document.getElementById("intime").value;
+      document.getElementById("leavePeriod").innerText = `${document.getElementById("outtime").value} to ${document.getElementById("intime").value}`;
+
+      const qrContent = `Sr: ${sr}\nNames: ${document.getElementById("names").value}\nPurpose: ${document.getElementById("purpose").value}\nOut: ${document.getElementById("outtime").value}\nIn: ${document.getElementById("intime").value}\nLocation: ${currentLocation}`;
+      document.getElementById("qrcode").innerHTML = "";
+      new QRCode(document.getElementById("qrcode"), qrContent);
+
+      const phone = document.getElementById("contact").value.trim();
+      const message = encodeURIComponent(`Gate Pass:\nNames: ${document.getElementById("names").value}\nRoom: ${document.getElementById("rooms").value}\nBranch/Yr: ${document.getElementById("branch").value}\nPurpose: ${document.getElementById("purpose").value}\nOut: ${document.getElementById("outtime").value}\nIn: ${document.getElementById("intime").value}\nLocation: ${currentLocation}\n(Please find the image of this pass attached)`);
+
+      if (phone && phone.length >= 10) {
+        const waURL = `https://wa.me/91${phone}?text=${message}`;
+        window.open(waURL, "_blank");
+      } else {
+        alert("Please enter a valid 10-digit phone number.");
+      }
+    }
+
+    function downloadPass() {
+      const passDiv = document.getElementById("passPreview");
+      html2canvas(passDiv).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "GatePass.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+
+    function sendRequestToWarden() {
+      const wardenPhone = "9122671273";
+      const message = encodeURIComponent(`Gate Pass Request:\nSr. No: ${document.getElementById("srno").innerText}\nNames: ${document.getElementById("pnames").innerText}\nRoom No: ${document.getElementById("prooms").innerText}\nBranch/Yr: ${document.getElementById("pbranch").innerText}\nPurpose: ${document.getElementById("ppurpose").innerText}\nOut: ${document.getElementById("pout").innerText}\nIn: ${document.getElementById("pin").innerText}\nLocation: ${document.getElementById("gpsLocation").innerText}\nAccept or Reject the request.`);
+      const waURL = `https://wa.me/91${wardenPhone}?text=${message}`;
+      window.open(waURL, "_blank");
+    }
+  </script>
+</body>
+</html>

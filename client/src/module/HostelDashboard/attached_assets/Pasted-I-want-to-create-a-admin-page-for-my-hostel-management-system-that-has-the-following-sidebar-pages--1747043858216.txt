@@ -1,0 +1,33 @@
+I want to create a admin page for my hostel management system that has the following sidebar pages, i am explaining each of them one by one, each of them contains a table in which DATA will be shown from the database keep it empty till i connect the database manually.
+the page layout is shown in the image uploaded as “page_layout”
+now the sidebar pages,
+DASHBOARD:
+the design is uploaded as image “dashboard_layout” which contains 3 data i.e total students, total rooms, total courses.
+2. CHANGE PASSWORD
+this gives a dashboard to change the password which asks old password, new password, confirm password and the button to change or cancel.
+3. COURSES
+this sidebar will have a dropdown menu, that has options to 
+a. add courses
+this will have an option to add course by entering the course name
+b. manage courses
+this will show the individual table for all 4 courses
+4.ROOMS
+this sidebar will have a dropdown menu, that has options to manage and add a room
+we have 4 floor with 12 rooms in each floor, and 3 seater facilities
+5.MANAGE STUDENTS
+this sidebar will have a dropdown menu, that has options to 
+a. manage students
+this will have a table with following coloumn, s no, student name, registration no, contant no, room no, staying from, action
+b. add student
+6.TAKE ATTENDENCE
+this will have a table that has retro buttons to take attendence of all the students, the table shows sr.no., student name, student roll, attendance (p/a)
+7.REQUEST LEAVE
+this is the section where all the request leaves from student will show up in a table with option to either accecpt or reject the leave,
+the table will have the folllowing coloumns, rollno,student name, stream, permission type, reason for leave, leave date/time, return date/time, place of visit, contact no, accecpt/reject
+the ui for leave request section will be as the image uploaded in “leave_request_ui”
+8.COMPLAINT BOX
+The table will contain coloums named as, id, name, class, contact, email, email, issue date, topic, view.
+9.USER ACCESS LOGS
+this has the table that shows the following data, sr no, user id, user email, login time.
+10.LOG OUT
+ju9st simple log out option

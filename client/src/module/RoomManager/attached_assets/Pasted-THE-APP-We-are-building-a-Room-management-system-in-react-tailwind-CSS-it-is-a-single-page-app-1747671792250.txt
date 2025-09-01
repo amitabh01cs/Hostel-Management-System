@@ -1,0 +1,26 @@
+THE APP :
+#We are building a Room management system in react + tailwind CSS, it is a single page app.
+#Layout for the design is uploaded as “room_management_layout”, which contains filters at the top and a dynamic layout for room visualization below it, both of them are explained below,
+#FILTERS for efficient sorting as given :
+Year wise filter (all, 1st year, 2nd year, 3rd year, 4th year)
+Floor wise (all, ground, first, second, 3rd)
+Vacancy wise(all, fully filled, partially filled, vacant)
+Seating (all, one seater, two seaters, three seater)
+Institution wise(all, IIST,IIP,IIMR) 
+#DYNAMIC LAYOUT: as shown in the “room_management_layout” i.e. 6 rooms on left side and 6 on the right with their numbering shown as in the imagen from 001 to 012.
+#Now the individual rooms in the ‘dynamic layout’ will look like the image uploaded as “room_layout” that will contain room number like “Room 001”, with three rectangles indicating 3 beds as shown in the “room_layout”. 
+-On hovering anywhere on the room layout, the details of that particular room shows up i.e. room number, floor no, current occupants (occupants name, institution, year and branch) as shown in image uploaded as “hover_layout”.
+- Now, the room layout has 3 “bed blocks” (rectangles) that shows the unique id of bed as “BB001A” i.e. “BB(Boys bed), 001(room no), A(bed a/b/c)” on the bed block. 
+- Now, THE BED BLOCKS can be in two states, empty & occupied, the details of them is given below:
+-If the bed is “empty”, it has the following features:
+the rectangle is grey and shows text ”empty bed”,
+ upon clicking on the bed, a pop up window opens up showing two option, first to add a new students from a dropdown of list of students (i will add data later, use sample for now) with search feature & the second option is to remove that bed, this will remove the bed and only remaining beds will show up in the ‘room layout’ with changing the no of seating of the room in real time (one seater, two seaters, three seater).
+- If the bed is already “occupied” by a student, it has the following features:
+The rectangle is green if its occupied and it shows unique id i.e. BB001A.
+Upon hovering over the bed block, the unique bed no changes to show the name of the student.
+when clicking on the bed, it shows the data of that students in a pop up window as uploaded in image “bed_details” that contains photo, name, branch with more details
+options to remove which empties the bed.
+option to reallocate student which cuts and pastes the student on the bed we click, after clicking on reallocate the pop up window automatically closes and user can click on bed to paste the student.
+-Now, the room laout has a button to add student, as shown in the image uploaded in “room_layout”, bed adding option is only visible if room has less than 3 beds, if room has 3 beds, don’t show the add bed option 
+Remember all the uploaded assets are for inspirations.
+Optional Context: Our college has 2 hostels, “varahmihir boys hostel” and “matrayi girls hostel”, with three institutions IIST(Indore institute of science and tech.), IIP(pharmacy) and IIMR (management and research), we are currently building a room management system for for boys hostel.
