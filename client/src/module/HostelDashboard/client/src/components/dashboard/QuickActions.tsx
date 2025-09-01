@@ -55,7 +55,7 @@ const QuickActions = () => {
             iconBg="bg-primary-100"
             iconColor="text-primary"
             onClick={() => {
-              window.location.href = "https://backend-hostel-module-production.up.railway.app/";
+              window.location.href = "https://backend-hostel-module-production-iist.up.railway.app/";
             }}
           />
           <QuickActionButton

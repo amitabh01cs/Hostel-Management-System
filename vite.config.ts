@@ -28,7 +28,7 @@ export default defineConfig({
     port: 5174,
     // proxy: {
     //   "/api": {
-    //     target: "https://backend-hostel-module-production.up.railway.app/",
+    //     target: "https://backend-hostel-module-production-iist.up.railway.app/",
     //     changeOrigin: true,
     //     secure: false,
     //   },
