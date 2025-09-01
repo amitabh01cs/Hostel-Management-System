@@ -19,7 +19,7 @@ type AdminComplaint = {
   status: string;
 };
 
-const API_URL = "https://backend-hostel-module-production-iist.up.railway.app/api/admin-complaints";
+const API_URL = "https://hostel-backend-module-production-iist.up.railway.app/api/admin-complaints";
 
 const SuperAdminAdminComplaints: React.FC = () => {
   const [complaints, setComplaints] = useState<AdminComplaint[]>([]);

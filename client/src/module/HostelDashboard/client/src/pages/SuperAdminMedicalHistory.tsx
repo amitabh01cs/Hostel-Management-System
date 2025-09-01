@@ -9,7 +9,7 @@ const SuperAdminMedicalHistory: React.FC = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("https://backend-hostel-module-production-iist.up.railway.app/api/medical-history/reports")
+    fetch("https://hostel-backend-module-production-iist.up.railway.app/api/medical-history/reports")
       .then(res => res.json())
       .then(data => setReports(Array.isArray(data) ? data : []))  // <-- YAHAN FIX
       .catch(() => setError("Failed to load medical history reports."));

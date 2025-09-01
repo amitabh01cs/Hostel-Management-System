@@ -40,7 +40,7 @@ const EmptyBedDialog = ({
       }
     } catch {}
 
-    let url = "https://backend-hostel-module-production-iist.up.railway.app/api/student/filtered-list";
+    let url = "https://hostel-backend-module-production-iist.up.railway.app/api/student/filtered-list";
     if (adminType === "varahmihir") {
       url += "?gender=M";
     } else if (adminType === "maitreyi") {

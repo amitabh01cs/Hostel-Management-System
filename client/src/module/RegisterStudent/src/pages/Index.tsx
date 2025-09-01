@@ -240,7 +240,7 @@ const Index = () => {
 
     try {
       await axios.post(
-        "https://backend-hostel-module-production-iist.up.railway.app/api/student/add",
+        "https://hostel-backend-module-production-iist.up.railway.app/api/student/add",
         formData
         // Don't set headers, browser will set for multipart
       );

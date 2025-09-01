@@ -16,7 +16,7 @@ type EmergencyReport = {
   status: string;
 };
 
-const API_URL = "https://backend-hostel-module-production-iist.up.railway.app/api/emergency-reports";
+const API_URL = "https://hostel-backend-module-production-iist.up.railway.app/api/emergency-reports";
 
 const SuperAdminEmergencyReports: React.FC = () => {
   const [reports, setReports] = useState<EmergencyReport[]>([]);

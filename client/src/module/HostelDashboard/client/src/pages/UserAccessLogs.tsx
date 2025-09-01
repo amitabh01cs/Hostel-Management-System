@@ -49,7 +49,7 @@ const UserAccessLogs = () => {
   // Fetch logs from backend with mapping from snake_case to camelCase
   useEffect(() => {
     setLoading(true);
-    fetch("https://backend-hostel-module-production-iist.up.railway.app/api/access-log")
+    fetch("https://hostel-backend-module-production-iist.up.railway.app/api/access-log")
       .then((res) => res.json())
       .then((data) => {
         const logs = (Array.isArray(data) ? data : data.logs).map((log: any) => ({

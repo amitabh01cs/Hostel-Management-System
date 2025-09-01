@@ -17,7 +17,7 @@ export function useAdminAuth() {
     if (stored) {
       const parsed: AdminUser = JSON.parse(stored);
       // Backend verification for security
-      fetch(`https://backend-hostel-module-production-iist.up.railway.app/api/admin/exists?email=${encodeURIComponent(parsed.email)}`)
+      fetch(`https://hostel-backend-module-production-iist.up.railway.app/api/admin/exists?email=${encodeURIComponent(parsed.email)}`)
         .then(res => res.json())
         .then(data => {
           if (data.exists) {
