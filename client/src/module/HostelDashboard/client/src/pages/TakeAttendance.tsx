@@ -144,32 +144,61 @@ const TakeAttendance = () => {
   useEffect(() => {
     if (showView && admin) {
       setLoadingTable(true);
-      let attUrl = `${BASE_API_URL}/api/attendance/date?date=${selectedDate}`;
-      if (genderParam) attUrl += `&gender=${genderParam}`;
-      fetch(attUrl)
-        .then((res) => res.json())
-        .then((data) => {
-          setAttendance(
-            data.map((s: any) => ({
-              ...s,
-              year:
-                s.year === "1"
-                  ? "I"
-                  : s.year === "2"
-                  ? "II"
-                  : s.year === "3"
-                  ? "III"
-                  : s.year === "4"
-                  ? "IV"
-                  : s.year === "5"
-                  ? "V"
-                  : s.year,
-            }))
+
+      // Function to fetch attendance by date
+      const fetchAttendanceByDate = async (dateStr: string) => {
+        let url = `${BASE_API_URL}/api/attendance/date?date=${dateStr}`;
+        if (genderParam) url += `&gender=${genderParam}`;
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data;
+      };
+
+      // Main async logic
+      (async () => {
+        // Pehle aaj ki attendance fetch karo
+        const todayStr = getLocalDateString();
+        let data = await fetchAttendanceByDate(todayStr);
+
+        if (data.length === 0) {
+          // Agar aaj ki attendance nahi to kal ki try karo
+          const yesterday = new Date(
+            new Date(todayStr).getTime() - 24 * 60 * 60 * 1000
           );
-          setLoadingTable(false);
-        });
+          const yyyy = yesterday.getFullYear();
+          const mm = String(yesterday.getMonth() + 1).padStart(2, "0");
+          const dd = String(yesterday.getDate()).padStart(2, "0");
+          const yesterdayStr = `${yyyy}-${mm}-${dd}`;
+
+          data = await fetchAttendanceByDate(yesterdayStr);
+          setSelectedDate(yesterdayStr); // Kal ki date set karo
+        } else {
+          setSelectedDate(todayStr); // Aaj ki default date set rakho
+        }
+
+        // Set attendance with converted year labels
+        setAttendance(
+          data.map((s: any) => ({
+            ...s,
+            year:
+              s.year === "1"
+                ? "I"
+                : s.year === "2"
+                ? "II"
+                : s.year === "3"
+                ? "III"
+                : s.year === "4"
+                ? "IV"
+                : s.year === "5"
+                ? "V"
+                : s.year,
+          }))
+        );
+        setLoadingTable(false);
+      })();
     }
-  }, [showView, selectedDate, genderParam, admin]);
+  }, [showView, genderParam, admin]);
 
   useEffect(() => {
     if (!admin) return;
@@ -630,8 +659,8 @@ const TakeAttendance = () => {
               <CardHeader className="pb-3">
                 <CardTitle>Student Attendance</CardTitle>
                 <CardDescription>
-                  Date: {getLocalDateString()} | Total: {filteredStudents.length} | Present:{" "}
-                  {presentCount} | Absent: {absentCount}
+                  Date: {getLocalDateString()} | Total: {filteredStudents.length} |
+                  Present: {presentCount} | Absent: {absentCount}
                 </CardDescription>
               </CardHeader>
               <CardContent>
