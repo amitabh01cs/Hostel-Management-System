@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "../components/ui/data-table";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "../components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { useToast } from "../hooks/use-toast";
 import { CheckCircle, XCircle, Download, Eye, ArrowLeft } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -70,7 +83,9 @@ const TakeAttendance = () => {
   const [loadingTable, setLoadingTable] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateString);
   const [statusFilter, setStatusFilter] = useState("");
-  const [attendanceAlreadySubmitted, setAttendanceAlreadySubmitted] = useState(false);
+  const [attendanceAlreadySubmitted, setAttendanceAlreadySubmitted] = useState(
+    false
+  );
   const [showRange, setShowRange] = useState(false);
   const [rangeFrom, setRangeFrom] = useState(getLocalDateString());
   const [rangeTo, setRangeTo] = useState(getLocalDateString());
@@ -84,7 +99,9 @@ const TakeAttendance = () => {
 
   useEffect(() => {
     if (!admin) return;
-    const adminTypeLower = admin.adminType ? admin.adminType.trim().toLowerCase() : "";
+    const adminTypeLower = admin.adminType
+      ? admin.adminType.trim().toLowerCase()
+      : "";
     if (adminTypeLower === "varahmihir") setGenderParam("M");
     else if (adminTypeLower === "maitreyi") setGenderParam("F");
     else setGenderParam("");
@@ -92,7 +109,7 @@ const TakeAttendance = () => {
 
   useEffect(() => {
     if (!showView && !showRange && admin) {
-      let url = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
+      let url = `${BASE_API_URL}/api/attendance/filtered-list`;
       if (genderParam) url += `?gender=${genderParam}`;
       fetch(url)
         .then((res) => res.json())
@@ -213,18 +230,23 @@ const TakeAttendance = () => {
   const presentCount = filteredStudents.filter(
     (s) => s.attendance === "present"
   ).length;
+
   const absentCount = filteredStudents.filter(
     (s) => s.attendance === "absent"
   ).length;
+
   const presentCountView = filteredAttendance.filter(
     (s) => (s.status || "").toLowerCase() === "present"
   ).length;
+
   const absentCountView = filteredAttendance.filter(
     (s) => (s.status || "").toLowerCase() === "absent"
   ).length;
+
   const presentCountRange = filteredRangeAttendance.filter(
     (s) => (s.status || "").toLowerCase() === "present"
   ).length;
+
   const absentCountRange = filteredRangeAttendance.filter(
     (s) => (s.status || "").toLowerCase() === "absent"
   ).length;
@@ -246,7 +268,6 @@ const TakeAttendance = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-
     // Validate attendance marked for all students
     const unmarkedStudents = filteredStudents.filter((s) => s.attendance === null);
     if (unmarkedStudents.length > 0) {
@@ -258,7 +279,6 @@ const TakeAttendance = () => {
       setIsSubmitting(false);
       return;
     }
-
     // Validate status values
     const invalidStatusStudents = filteredStudents.filter(
       (s) => s.attendance !== "present" && s.attendance !== "absent"
@@ -272,15 +292,12 @@ const TakeAttendance = () => {
       setIsSubmitting(false);
       return;
     }
-
     const attendanceList = filteredStudents.map((s) => ({
       studentId: s.id,
       status: s.attendance,
     }));
-
     try {
       const adminTypeParam = admin?.adminType ?? "";
-
       const res = await fetch(
         `${BASE_API_URL}/api/attendance/save?adminType=${adminTypeParam}`,
         {
@@ -289,7 +306,6 @@ const TakeAttendance = () => {
           body: JSON.stringify(attendanceList),
         }
       );
-
       if (!res.ok) {
         const errorData = await res.json();
         toast({
@@ -300,9 +316,7 @@ const TakeAttendance = () => {
         setIsSubmitting(false);
         return;
       }
-
       const data = await res.json();
-
       if (data.success) {
         toast({
           title: "Attendance Submitted",
@@ -494,7 +508,6 @@ const TakeAttendance = () => {
             View Attendance by Date Range
           </Button>
         </div>
-
         {showRange && (
           <div className="flex gap-4 mb-4 items-center">
             <Button
@@ -538,7 +551,6 @@ const TakeAttendance = () => {
             </Button>
           </div>
         )}
-
         {showRange ? (
           <Card>
             <CardHeader>
