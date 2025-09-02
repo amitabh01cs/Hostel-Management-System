@@ -1,769 +1,313 @@
-import { useState, useMemo, useEffect } from "react";
-import * as XLSX from "xlsx";
+import { useState, useEffect, useMemo } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Button } from "../components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Badge } from "../components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { useToast } from "../hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
+import * as XLSX from "xlsx";
 import {
-  Search, Shield, Users, UserX, UserCheck, Clock, MapPin, FileText,
-  History, LogOut, Download
+  Card, CardContent, CardHeader, CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs, TabsList, TabsTrigger, TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Search, Eye, Pencil, Download,
 } from "lucide-react";
-import { useSecurityAuth } from "../hooks/useSecurityAuth";
 
-import { useTranslation, initReactI18next } from "react-i18next";
-import i18n from "i18next";
+const BACKEND_URL = "https://hostel-backend-module-production-iist.up.railway.app/api";
 
-const resources = {
-  en: {
-    translation: {
-      "Campus Security": "Campus Security",
-      "Student Entry/Exit Tracking": "Student Entry/Exit Tracking",
-      "Search Students": "Search Students",
-      "Pass Type": "Pass Type",
-      "Status": "Status",
-      "All Types": "All Types",
-      "Hourly": "Hourly",
-      "Days": "Days",
-      "All Students": "All Students",
-      "Checked Out Only": "Checked Out Only",
-      "Available on Campus": "Available on Campus",
-      "Total Students": "Total Students",
-      "Checked Out": "Checked Out",
-      "On Campus": "On Campus",
-      "Hourly Passes": "Hourly Passes",
-      "Active Students": "Active Students",
-      "students found": "students found",
-      "No students found": "No students found",
-      "Try adjusting your search terms or filters to find the students you're looking for.": "Try adjusting your search terms or filters to find the students you're looking for.",
-      "Reason:": "Reason:",
-      "Place:": "Place:",
-      "Pass no:": "Pass no:",
-      "Journey Completed": "Journey Completed",
-      "Late Check-In": "Late Check-In",
-      "Check Out": "Check Out",
-      "Check In": "Check In",
-      "Recent Activity": "Recent Activity",
-      "No recent activity": "No recent activity",
-      "Completed Student Logs": "Completed Student Logs",
-      "No completed entries": "No completed entries",
-      "Students who complete their check-in process will appear here.": "Students who complete their check-in process will appear here.",
-      "Approved Return Time (Arrival):": "Approved Return Time (Arrival):",
-      "Actual Check-In Time:": "Actual Check-In Time:",
-      "Passes History": "Passes History",
-      "Select Date:": "Select Date:",
-      "Download Excel": "Download Excel",
-      "No data found": "No data found",
-      "Logout": "Logout",
-      "View Passes History": "View Passes History",
-      "Check Out Successful": "Check Out Successful",
-      "Check In Successful": "Check In Successful",
-      "Check Out Failed": "Check Out Failed",
-      "Check In Failed": "Check In Failed",
-      "Late Check-In Alert": "Late Check-In Alert",
-      "This check-in is late!": "This check-in is late!",
-      "Language": "Language"
-    }
-  },
-  hi: {
-    translation: {
-      "Campus Security": "कैम्पस सुरक्षा",
-      "Student Entry/Exit Tracking": "छात्र प्रवेश/निकास ट्रैकिंग",
-      "Search Students": "छात्र खोजें",
-      "Pass Type": "पास प्रकार",
-      "Status": "स्थिति",
-      "All Types": "सभी प्रकार",
-      "Hourly": "घंटे का",
-      "Days": "दिन",
-      "All Students": "सभी छात्र",
-      "Checked Out Only": "सिर्फ बाहर गए",
-      "Available on Campus": "कैम्पस में उपलब्ध",
-      "Total Students": "कुल छात्र",
-      "Checked Out": "बाहर गए",
-      "On Campus": "कैम्पस में",
-      "Hourly Passes": "घंटे के पास",
-      "Active Students": "सक्रिय छात्र",
-      "students found": "छात्र मिले",
-      "No students found": "कोई छात्र नहीं मिला",
-      "Try adjusting your search terms or filters to find the students you're looking for.": "छात्रों को खोजने के लिए अपने खोज शब्द या फ़िल्टर को समायोजित करें।",
-      "Reason:": "कारण:",
-      "Place:": "स्थान:",
-      "Pass no:": "पास संख्या:",
-      "Journey Completed": "यात्रा पूरी हुई",
-      "Late Check-In": "देर से चेक-इन",
-      "Check Out": "चेक आउट",
-      "Check In": "चेक इन",
-      "Recent Activity": "हाल की गतिविधि",
-      "No recent activity": "कोई हाल की गतिविधि नहीं",
-      "Completed Student Logs": "पूर्ण छात्र लॉग",
-      "No completed entries": "कोई पूर्ण प्रविष्टियाँ नहीं",
-      "Students who complete their check-in process will appear here.": "जो छात्र चेक-इन पूरा करेंगे, वे यहाँ दिखेंगे।",
-      "Approved Return Time (Arrival):": "अनुमोदित वापसी समय (आगमन):",
-      "Actual Check-In Time:": "वास्तविक चेक-इन समय:",
-      "Passes History": "पास इतिहास",
-      "Select Date:": "तारीख़ चुनें:",
-      "Download Excel": "एक्सेल डाउनलोड करें",
-      "No data found": "कोई डेटा नहीं मिला",
-      "Logout": "लॉगआउट",
-      "View Passes History": "पास इतिहास देखें",
-      "Check Out Successful": "चेक आउट सफल",
-      "Check In Successful": "चेक इन सफल",
-      "Check Out Failed": "चेक आउट असफल",
-      "Check In Failed": "चेक इन असफल",
-      "Late Check-In Alert": "देर से चेक-इन अलर्ट",
-      "This check-in is late!": "यह चेक-इन देर से है!",
-      "Language": "भाषा"
-    }
-  }
-};
-
-i18n.use(initReactI18next).init({
-  resources,
-  lng: "en",
-  fallbackLng: "en",
-  interpolation: { escapeValue: false }
-});
-
-const languageOptions = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "हिंदी" },
-];
-
-function getPhotoUrl(studentId: number | undefined, name: string) {
-  return studentId
-    ? `https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${studentId}`
-    : `https://i.pravatar.cc/150?u=${encodeURIComponent(name)}`;
+function getPhotoURL(studentId) {
+  return `${BACKEND_URL}/student/photo/${studentId}`;
 }
 
-function getInitials(name: string | undefined | null) {
-  if (!name) return "";
-  return name
-    .split(" ")
-    .filter(n => n.length > 0)
-    .map(n => n[0])
-    .join("")
-    .toUpperCase();
+function getInitials(name = "") {
+  return name.split(" ").map(x => x[0]).join("").toUpperCase();
 }
 
-function formatTime(date: Date | string | null | undefined) {
-  if (!date) return "";
-  const d = new Date(date as any);
-  if (isNaN(d.getTime())) return "";
-  return d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
-}
-
-function formatAMPM(dateStr: string | undefined) {
-  if (!dateStr) return "";
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit", hour12: true });
+  return isNaN(d) ? "-" : d.toLocaleDateString();
 }
 
-const API_PREFIX = "https://hostel-backend-module-production-iist.up.railway.app/api/security";
+function formatTime(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  return isNaN(d) ? "-" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
-export default function SecurityDashboard() {
-  const { t } = useTranslation();
-  const { security, loading } = useSecurityAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [passTypeFilter, setPassTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedTab, setSelectedTab] = useState("dashboard");
-  const { toast } = useToast();
+function toLocalDateTimeString(date) {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return "";
+  // yyyy-MM-ddThh:mm format
+  return d.toISOString().slice(0, 16);
+}
+
+export default function RequestLeave() {
+  const [requests, setRequests] = useState([]);
+  const [todaysRequests, setTodaysRequests] = useState([]);
+  const [filterText, setFilterText] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editRequest, setEditRequest] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editFrom, setEditFrom] = useState("");
+  const [editTo, setEditTo] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRequests, setHistoryRequests] = useState([]);
+  const [historyDates, setHistoryDates] = useState([]);
+  const [historySelectedDate, setHistorySelectedDate] = useState(null);
+
   const queryClient = useQueryClient();
-  const [language, setLanguage] = useState(i18n.language);
-
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [historyDate, setHistoryDate] = useState<Date>(new Date());
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
-  const [lateCheckInIds, setLateCheckInIds] = useState([]);
 
   useEffect(() => {
-    i18n.changeLanguage(language);
-  }, [language]);
+    fetchRequests();
+  }, []);
 
-  // Fetch Students
-  const { data: students = [], isLoading: studentsLoading } = useQuery({
-    queryKey: [`${API_PREFIX}/active-passes`],
-    queryFn: async () => {
-      const res = await fetch(`${API_PREFIX}/active-passes`);
-      return res.json();
-    }
-  });
-
-  // Fetch Completed Students Logs
-  const { data: completedStudents = [], isLoading: completedLoading } = useQuery({
-    queryKey: [`${API_PREFIX}/completed-logs`],
-    queryFn: async () => {
-      const res = await fetch(`${API_PREFIX}/completed-logs`);
-      return res.json();
-    }
-  });
-
-  // Fetch Stats (disabled by default)
-  const { data: stats } = useQuery({
-    queryKey: [`${API_PREFIX}/stats`],
-    queryFn: async () => {
-      const res = await fetch(`${API_PREFIX}/stats`);
-      if (res.status === 200) return res.json();
-      return undefined;
-    },
-    enabled: false,
-  });
-
-  // Fetch Activity Logs
-  const { data: activityLogs = [] } = useQuery({
-    queryKey: [`${API_PREFIX}/activity-logs`],
-    queryFn: async () => {
-      const res = await fetch(`${API_PREFIX}/activity-logs`);
-      return res.json();
-    }
-  });
-
-  // Mutations
-  const checkOutMutation = useMutation({
-    mutationFn: async (gatePassId) => {
-      const res = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkout`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to check out");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/active-passes`] });
-      queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/activity-logs`] });
-      toast({ title: t("Check Out Successful"), description: `${data.name} ${t("has been checked out successfully.")}` });
-    },
-    onError: (error) => {
-      toast({ title: t("Check Out Failed"), description: error.message || t("Failed to check out student"), variant: "destructive" });
-    },
-  });
-
-  const checkInMutation = useMutation({
-    mutationFn: async ({ gatePassId, isLate }) => {
-      const res = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkin`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to check in");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/active-passes`] });
-      queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/completed-logs`] });
-      queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/activity-logs`] });
-      toast({ title: t("Check In Successful"), description: `${data.name} ${t("has been checked in and moved to completed logs.")}` });
-      setLateCheckInIds(ids => ids.filter(id => id !== data.id));
-    },
-    onError: (error) => {
-      toast({ title: t("Check In Failed"), description: error.message || t("Failed to check in student"), variant: "destructive" });
-    },
-  });
-
-  const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      const matchesSearch = searchTerm === "" ||
-        (student.name && student.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (student.course && student.course.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (student.passNumber || "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (student.reason || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (student.destination || "").toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesPassType = passTypeFilter === "all" || student.passType === passTypeFilter;
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "out" && student.status === "out") ||
-        (statusFilter === "in" && student.status === "active");
-      return matchesSearch && matchesPassType && matchesStatus;
-    });
-  }, [students, searchTerm, passTypeFilter, statusFilter]);
-
-  const handleCheckOut = id => checkOutMutation.mutate(id);
-
-  const handleCheckIn = (student) => {
-    let isLate = false;
-    if (student.toTime) {
-      const approved = new Date(student.toTime);
-      const now = new Date();
-      if (!isNaN(approved.getTime()) && now > approved) isLate = true;
-    }
-    if (isLate) {
-      toast({ title: t("Late Check-In Alert"), description: t("This check-in is late!"), variant: "destructive" });
-      setLateCheckInIds(ids => [...ids, student.id]);
-    }
-    checkInMutation.mutate({ gatePassId: student.id, isLate });
-  };
-
-  const getInitialsSafe = getInitials;
-
-  const fetchHistory = async (date) => {
-    setHistoryLoading(true);
-    const dateStr = date.toISOString().slice(0, 10);
-    const res = await fetch(`${API_PREFIX}/completed-logs?date=${dateStr}`);
+  async function fetchRequests() {
+    const res = await fetch(`${BACKEND_URL}/gate-pass/all`);
     const data = await res.json();
-    setHistoryData(data || []);
-    setHistoryLoading(false);
-  };
 
-  const handleOpenHistory = () => { setHistoryModalOpen(true); setHistoryDate(new Date()); fetchHistory(new Date()); };
-  const handleDateChange = date => { setHistoryDate(date); fetchHistory(date); };
+    data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    setRequests(data);
+    const todayISO = new Date().toISOString().slice(0, 10);
+    setTodaysRequests(data.filter(r => r.createdAt.startsWith(todayISO)));
 
-  const handleDownloadExcel = () => {
-    const wsData = [
-      [t("Name"), t("Course"), t("Pass No"), t("Reason"), t("Destination"), t("Check Out"), t("Check In"), t("Journey Status")],
-      ...historyData.map(student => {
-        let status = "";
-        if (student.toTime && student.checkInTime) {
-          const approved = new Date(student.toTime);
-          const actual = new Date(student.checkInTime);
-          if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
-            status = actual <= approved ? t("Journey Completed") : t("Late Check-In");
-          }
-        }
-        return [
-          student.name || "",
-          student.course || "",
-          student.passNumber || "",
-          student.reason || "",
-          student.destination || "",
-          formatTime(student.checkOutTime),
-          formatTime(student.checkInTime),
-          status
-        ];
-      }),
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const uniqueDates = Array.from(new Set(data.map(r => r.createdAt?.slice(0, 10)).filter(Boolean)));
+    uniqueDates.sort((a, b) => (new Date(b)) - (new Date(a)));
+
+    setHistoryDates(uniqueDates.map(d => new Date(d)));
+    if (uniqueDates.length) setHistorySelectedDate(new Date(uniqueDates[0]));
+  }
+
+  useEffect(() => {
+    if (!historySelectedDate) return;
+    const sel = historySelectedDate.toISOString().slice(0, 10);
+    setHistoryRequests(requests.filter(r => r.createdAt?.startsWith(sel)));
+  }, [historySelectedDate, requests]);
+
+  const filteredTodaysRequests = useMemo(() => {
+    return todaysRequests.filter(r => {
+      const name = r.student?.fullName?.toLowerCase() || "";
+      const status = (r.status || "").toLowerCase();
+      const type = (r.passType || "").toLowerCase();
+      const term = filterText.toLowerCase();
+      const fStatus = filterStatus.toLowerCase();
+      const fType = filterType.toLowerCase();
+
+      const matchesName = name.includes(term);
+      const matchesStatus = filterStatus === "all" || status === fStatus;
+      const matchesType = filterType === "all" || type === fType;
+      return matchesName && matchesStatus && matchesType;
+    });
+  }, [todaysRequests, filterText, filterStatus, filterType]);
+
+  function openDetails(req) {
+    setSelectedRequest(req);
+    setDetailsOpen(true);
+  }
+  function closeDetails() {
+    setSelectedRequest(null);
+    setDetailsOpen(false);
+  }
+
+  function openEdit(req) {
+    setEditRequest(req);
+    setEditFrom(toLocalDateTimeString(req.from));
+    setEditTo(toLocalDateTimeString(req.to));
+    setEditOpen(true);
+  }
+  function closeEdit() {
+    setEditRequest(null);
+    setEditOpen(false);
+  }
+
+  async function saveEdit() {
+    if (!editRequest) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/gate-pass/${editRequest.id}/edit-time`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromTime: editFrom, toTime: editTo }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast({ title: "Pass period updated" });
+      fetchRequests();
+    } catch {
+      toast({ title: "Failed to update period", variant: "destructive" });
+    }
+    closeEdit();
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/gate-pass/${id}/status?status=${status}`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to update");
+      toast({ title: `Request ${status}` });
+      fetchRequests();
+    } catch {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    }
+  }
+
+  function downloadExcel(data, filename) {
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Passes");
-    XLSX.writeFile(wb, `passes-history-${historyDate.toISOString().slice(0, 10)}.xlsx`);
-  };
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, filename);
+  }
 
-  const handleLogout = () => {
-    localStorage.removeItem("securityUser");
-    window.location.href = "/login";
-  };
-
-  if (loading) return <div>Loading...</div>;
+  const columns = [
+    {
+      id: "photo",
+      header: "Photo",
+      cell: ({ row }) => {
+        const s = row.original.student;
+        return s?.id ? (
+          <img
+            src={getPhotoURL(s.id)}
+            alt={s.fullName}
+            className="w-10 h-10 rounded-full"
+            style={{ objectFit: "cover" }}
+            onError={e => e.currentTarget.src = "/no-image.png"}
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-lg font-bold text-gray-700">
+            {getInitials(s?.fullName)}
+          </div>
+        );
+      }
+    },
+    { accessorKey: "student.fullName", header: "Student Name" },
+    { accessorKey: "student.branch", header: "Branch" },
+    { accessorKey: "student.yearOfStudy", header: "Year" },
+    { accessorKey: "status", header: "Status", cell: ({ row }) => (
+      <Badge className={`px-2 py-1 rounded ${row.original.status === "Approved" ? "bg-green-500" : row.original.status === "Pending" ? "bg-yellow-400" : "bg-red-500"}`}>
+        {row.original.status}
+      </Badge>
+    ) },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const req = row.original;
+        return <div className="flex space-x-2">
+          <Button size="sm" onClick={() => openDetails(req)}><Eye /></Button>
+          {req.status === "Pending" && <>
+            <Button size="sm" className="text-green-600" onClick={() => updateStatus(req.id, "approved")}><Pencil /></Button>
+            <Button size="sm" className="text-red-600" onClick={() => updateStatus(req.id, "rejected")}><Pencil /></Button>
+          </>}
+          <Button size="sm" onClick={() => openEdit(req)}><Pencil /></Button>
+          <Button size="sm" onClick={() => downloadExcel([req], `GatePass_${req.id}.xlsx`)}><Download /></Button>
+        </div>;
+      }
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center space-x-4">
-              <div className="flex flex-col items-start"></div>
-              <div className="flex items-center space-x-2 ml-8">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-                <h1 className="text-xl font-semibold text-gray-900">{t("Campus Security")}</h1>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                {new Date().toLocaleString(i18n.language, { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
-              {security && <span className="text-base font-medium text-gray-900">{security.name}</span>}
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder={t("Language")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {languageOptions.map(lang => <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </header>
-      <main className="flex-1 overflow-y-auto max-h-[calc(100vh-4rem)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-end mb-4">
-            <Button variant="secondary" onClick={handleOpenHistory} className="bg-indigo-600 text-white">
-              {t("View Passes History")}
-            </Button>
-          </div>
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="dashboard">{t("Dashboard")}</TabsTrigger>
-              <TabsTrigger value="logs">{t("Completed Student Logs")}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="dashboard">
-              <Card className="mb-8">
-                <CardContent className="p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("Student Entry/Exit Tracking")}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="md:col-span-2">
-                      <Label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">{t("Search Students")}</Label>
-                      <div className="relative">
-                        <Input
-                          id="search"
-                          placeholder={t("Search by name, course, or pass number...")}
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10"
-                        />
-                        <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="passType" className="block text-sm font-medium text-gray-700 mb-2">{t("Pass Type")}</Label>
-                      <Select value={passTypeFilter} onValueChange={setPassTypeFilter}>
-                        <SelectTrigger><SelectValue placeholder={t("All Types")} /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t("All Types")}</SelectItem>
-                          <SelectItem value="hourly">{t("Hourly")}</SelectItem>
-                          <SelectItem value="days">{t("Days")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">{t("Status")}</Label>
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger><SelectValue placeholder={t("All Students")} /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t("All Students")}</SelectItem>
-                          <SelectItem value="out">{t("Checked Out Only")}</SelectItem>
-                          <SelectItem value="in">{t("Available on Campus")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="bg-blue-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-2xl font-bold text-blue-600">{stats?.total || 0}</div><div className="text-sm text-blue-600">{t("Total Students")}</div></div>
-                        <Users className="w-8 h-8 text-blue-500" />
-                      </div>
-                    </Card>
-                    <Card className="bg-red-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-2xl font-bold text-red-600">{stats?.checkedOut || 0}</div><div className="text-sm text-red-600">{t("Checked Out")}</div></div>
-                        <UserX className="w-8 h-8 text-red-500" />
-                      </div>
-                    </Card>
-                    <Card className="bg-green-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-2xl font-bold text-green-600">{stats?.onCampus || 0}</div><div className="text-sm text-green-600">{t("On Campus")}</div></div>
-                        <UserCheck className="w-8 h-8 text-green-500" />
-                      </div>
-                    </Card>
-                    <Card className="bg-amber-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div><div className="text-2xl font-bold text-amber-600">{stats?.hourlyPasses || 0}</div><div className="text-sm text-amber-600">{t("Hourly Passes")}</div></div>
-                        <Clock className="w-8 h-8 text-amber-500" />
-                      </div>
-                    </Card>
-                  </div>
-                  <div className="space-y-4 mb-8">
-                    <div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-800">{t("Active Students")}</h2><div className="text-sm text-gray-600">{filteredStudents.length} {t("students found")}</div></div>
-                    {studentsLoading ? (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {[...Array(6)].map((_, i) => (
-                          <Card key={i} className="animate-pulse">
-                            <CardContent className="p-6">
-                              <div className="flex items-center space-x-4">
-                                <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
-                                <div className="flex-1 space-y-2">
-                                  <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                                  <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : filteredStudents.length === 0 ? (
-                      <Card>
-                        <CardContent className="p-12 text-center">
-                          <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No students found")}</h3>
-                          <p className="text-gray-600">{t("Try adjusting your search terms or filters to find the students you're looking for.")}</p>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {filteredStudents.map(student => {
-                          const isLate = student.toTime && student.status === "out" && new Date() > new Date(student.toTime);
-                          return (
-                            <Card key={student.id} className="hover:shadow-md transition-shadow duration-200">
-                              <CardContent className="p-6">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-start space-x-4">
-                                    <Avatar className="w-16 h-16">
-                                      <AvatarImage
-                                        src={getPhotoUrl(student.id, student.name)}
-                                        alt={student.name}
-                                        className="object-cover"
-                                        onError={e => { e.currentTarget.src = "/no-image.png"; }}
-                                      />
-                                      <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                      <h3 className="text-lg font-semibold text-gray-900">{student.name}</h3>
-                                      <p className="text-sm text-gray-600">{student.course}</p>
-                                      <p className="text-sm font-medium text-blue-600 mt-1">{t("Pass no:")} {student.passNumber}</p>
-                                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                                        <div className="flex items-center space-x-1">
-                                          <FileText className="w-3 h-3 text-gray-400" />
-                                          <span className="text-gray-500">{t("Reason:")}</span>
-                                          <span className="text-gray-900 font-medium">{student.reason}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-1">
-                                          <MapPin className="w-3 h-3 text-gray-400" />
-                                          <span className="text-gray-500">{t("Place:")}</span>
-                                          <span className="text-gray-900 font-medium">{student.destination}</span>
-                                        </div>
-                                      </div>
-                                      <div className="mt-2 flex items-center space-x-2">
-                                        <Badge variant={student.passType === "hourly" ? "default" : "secondary"}>
-                                          <Clock className="w-3 h-3 mr-1" />
-                                          {t(student.passType === "hourly" ? "Hourly" : "Days")}
-                                        </Badge>
-                                        <Badge variant={student.status === "active" ? "default" : "destructive"}>
-                                          {student.status === "active" ? (
-                                            <>
-                                              <UserCheck className="w-3 h-3 mr-1" />
-                                              {t("On Campus")}
-                                            </>
-                                          ) : (
-                                            <>
-                                              <UserX className="w-3 h-3 mr-1" />
-                                              {t("Checked Out")}
-                                              {student.checkOutTime && ` - ${formatTime(student.checkOutTime)}`}
-                                            </>
-                                          )}
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col space-y-2 ml-4">
-                                    <Button
-                                      onClick={() => handleCheckOut(student.id)}
-                                      disabled={student.status === "out" || checkOutMutation.isLoading}
-                                      className="min-w-[100px] bg-blue-500 hover:bg-blue-600"
-                                      size="sm"
-                                    >
-                                      {checkOutMutation.isLoading ? "..." : t("Check Out")}
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleCheckIn(student)}
-                                      disabled={student.status === "active" || checkInMutation.isLoading}
-                                      className={`min-w-[100px] ${isLate ? "bg-orange-500 hover:bg-orange-600" : "bg-amber-500 hover:bg-amber-600"}`}
-                                      size="sm"
-                                    >
-                                      {checkInMutation.isLoading ? "..." : t("Check In")}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Leave Requests (Today)</h1>
 
-            <TabsContent value="logs">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <History className="w-5 h-5" />
-                    <span>{t("Completed Student Logs")}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {completedLoading ? (
-                    <div className="space-y-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                              <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : completedStudents.length === 0 ? (
-                    <div className="text-center py-12">
-                      <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No completed entries")}</h3>
-                      <p className="text-gray-600">{t("Students who complete their check-in process will appear here.")}</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {[...completedStudents]
-                        .sort((a, b) => {
-                          const aTime = a.checkInTime ? new Date(a.checkInTime).getTime() : (a.checkOutTime ? new Date(a.checkOutTime).getTime() : 0);
-                          const bTime = b.checkInTime ? new Date(b.checkInTime).getTime() : (b.checkOutTime ? new Date(b.checkOutTime).getTime() : 0);
-                          return bTime - aTime;
-                        })
-                        .map((student) => {
-                          const approvedReturnTime = student.toTime;
-                          const actualCheckInTime = student.checkInTime;
-                          let cardBg = "#fff";
-                          let badgeColor = "bg-green-600 text-white";
-                          let badgeText = t("Journey Completed");
-                          if (approvedReturnTime && actualCheckInTime) {
-                            const approved = new Date(approvedReturnTime);
-                            const actual = new Date(actualCheckInTime);
-                            if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
-                              if (actual <= approved) {
-                                cardBg = "#d4edda";
-                                badgeColor = "bg-green-600 text-white";
-                                badgeText = t("Journey Completed");
-                              } else {
-                                cardBg = "#fff3cd";
-                                badgeColor = "bg-orange-500 text-white";
-                                badgeText = t("Late Check-In");
-                              }
-                            }
-                          }
-                          return (
-                            <div key={student.id} className="rounded-lg shadow border transition-all" style={{ background: cardBg }}>
-                              <div className="p-5 flex flex-col gap-3">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="w-16 h-16">
-                                    <AvatarImage
-                                      src={getPhotoUrl(student.id, student.name)}
-                                      alt={student.name}
-                                      onError={e => { e.currentTarget.src = "/no-image.png"; }}
-                                    />
-                                    <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <div className="font-semibold text-lg text-gray-900">{student.name}</div>
-                                    <div className="text-sm text-gray-600">ID: {student.id}</div>
-                                    <div className="text-sm text-blue-600 font-medium">{t("Pass no:")} {student.passNumber || "N/A"}</div>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col gap-1 mt-2">
-                                  <div className="flex gap-2 items-center text-base">
-                                    <span className="text-gray-700 font-medium">{t("Approved Return Time (Arrival):")}</span>
-                                    <span className="text-gray-900 font-semibold">{formatAMPM(approvedReturnTime)}</span>
-                                  </div>
-                                  <div className="flex gap-2 items-center text-base">
-                                    <span className="text-gray-700 font-medium">{t("Actual Check-In Time:")}</span>
-                                    <span className="text-gray-900 font-semibold">{formatAMPM(actualCheckInTime)}</span>
-                                  </div>
-                                </div>
-                                <div className="mt-2">
-                                  <Badge className={badgeColor}>{badgeText}</Badge>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+      <div className="flex space-x-3 mb-4">
+        <Input placeholder="Search by student name" value={filterText} onChange={e => setFilterText(e.target.value)} />
+        <Select onValueChange={setFilterStatus} value={filterStatus}>
+          <SelectTrigger>Status</SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select onValueChange={setFilterType} value={filterType}>
+          <SelectTrigger>Pass Type</SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="hour">Hourly</SelectItem>
+            <SelectItem value="days">Days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          {historyModalOpen && (
-            <div className="fixed z-50 inset-0 bg-black/30 flex items-center justify-center">
-              <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 relative">
-                <button
-                  className="absolute top-2 right-2 text-xl"
-                  onClick={() => setHistoryModalOpen(false)}
-                  aria-label="Close Passes History"
-                >
-                  ✖
-                </button>
-                <h2 className="text-xl font-bold mb-3">{t("Passes History")}</h2>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="font-medium">{t("Select Date:")}</span>
-                  <DatePicker
-                    selected={historyDate}
-                    onChange={date => date && setHistoryDate(date)}
-                    maxDate={new Date()}
-                    dateFormat="yyyy-MM-dd"
-                    className="input"
-                    showPopperArrow={false}
-                  />
-                  <Button onClick={handleDownloadExcel} className="ml-auto" size="sm">
-                    <Download className="w-4 h-4 mr-1" /> {t("Download Excel")}
-                  </Button>
-                </div>
-                {historyLoading ? (
-                  <div className="py-10 text-center">{t("Loading...")}</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border mb-2">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="px-2 py-1 border">#</th>
-                          <th className="px-2 py-1 border">{t("Name")}</th>
-                          <th className="px-2 py-1 border">{t("Course")}</th>
-                          <th className="px-2 py-1 border">{t("Pass No")}</th>
-                          <th className="px-2 py-1 border">{t("Reason")}</th>
-                          <th className="px-2 py-1 border">{t("Destination")}</th>
-                          <th className="px-2 py-1 border">{t("Check Out")}</th>
-                          <th className="px-2 py-1 border">{t("Check In")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {historyData.length === 0 ? (
-                          <tr>
-                            <td colSpan={8} className="text-center py-8">{t("No data found")}</td>
-                          </tr>
-                        ) : (
-                          historyData.map((student, idx) => (
-                            <tr key={student.id}>
-                              <td className="border px-2 py-1">{idx + 1}</td>
-                              <td className="border px-2 py-1">
-                                <div className="flex items-center">
-                                  <Avatar className="w-8 h-8 mr-2">
-                                    <AvatarImage
-                                      src={getPhotoUrl(student.id, student.name)}
-                                      alt={student.name}
-                                      onError={e => { e.currentTarget.src = "/no-image.png"; }}
-                                    />
-                                    <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
-                                  </Avatar>
-                                  {student.name}
-                                </div>
-                              </td>
-                              <td className="border px-2 py-1">{student.course}</td>
-                              <td className="border px-2 py-1">{student.passNumber}</td>
-                              <td className="border px-2 py-1">{student.reason}</td>
-                              <td className="border px-2 py-1">{student.destination}</td>
-                              <td className="border px-2 py-1">{formatTime(student.checkOutTime)}</td>
-                              <td className="border px-2 py-1">{formatTime(student.checkInTime)}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+      <DataTable
+        columns={columns}
+        data={filteredTodaysRequests}
+        searchColumn="student.fullName"
+        searchPlaceholder="Search students"
+      />
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Details</DialogTitle>
+            <DialogDescription>{selectedRequest?.student?.fullName}</DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <>
+              <img
+                src={getPhotoURL(selectedRequest.student.id)}
+                alt={selectedRequest.student.fullName}
+                className="mx-auto rounded-full h-36 w-36 object-cover"
+                onError={e => e.currentTarget.src = "/no-image.png"}
+              />
+              <div className="space-y-2 mt-4">
+                <p><strong>Student ID:</strong> {selectedRequest.student.id}</p>
+                <p><strong>Branch:</strong> {selectedRequest.student.branch}</p>
+                <p><strong>Year:</strong> {selectedRequest.student.yearOfStudy}</p>
+                <p><strong>Contact:</strong> {selectedRequest.student.mobileNo}</p>
+                <p><strong>Purpose:</strong> {selectedRequest.reason}</p>
+                <p><strong>Destination:</strong> {selectedRequest.place}</p>
+                <p><strong>From:</strong> {formatDate(selectedRequest.from)} {formatTime(selectedRequest.from)}</p>
+                <p><strong>To:</strong> {formatDate(selectedRequest.to)} {formatTime(selectedRequest.to)}</p>
+                <p><strong>Status:</strong> {selectedRequest.status}</p>
               </div>
-            </div>
+            </>
           )}
+          <DialogFooter>
+            <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="flex justify-end mt-8">
-            <Button
-              variant="destructive"
-              size="lg"
-              className="flex items-center space-x-2"
-              onClick={handleLogout}
-              title={t("Logout")}
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              {t("Logout")}
-            </Button>
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Pass Period</DialogTitle>
+            <DialogDescription>Adjust leave and return times</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div>
+              <Label>From</Label>
+              <input type="datetime-local" className="input w-full" value={editFrom} onChange={e => setEditFrom(e.target.value)} />
+            </div>
+            <div>
+              <Label>To</Label>
+              <input type="datetime-local" className="input w-full" value={editTo} onChange={e => setEditTo(e.target.value)} />
+            </div>
           </div>
-        </div>
-      </main>
+          <DialogFooter>
+            <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={saveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
