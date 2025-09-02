@@ -105,7 +105,7 @@ const resources = {
       "Completed Student Logs": "पूर्ण छात्र लॉग",
       "No completed entries": "कोई पूर्ण प्रविष्टियाँ नहीं",
       "Students who complete their check-in process will appear here.": "जो छात्र चेक-इन पूरा करेंगे, वे यहाँ दिखेंगे।",
-      "Approved Return Time (आगमन):": "अनुमोदित वापसी समय (आगमन):",
+      "Approved Return Time (Arrival):": "अनुमोदित वापसी समय (आगमन):",
       "Actual Check-In Time:": "वास्तविक चेक-इन समय:",
       "Passes History": "पास इतिहास",
       "Select Date:": "तारीख़ चुनें:",
@@ -136,13 +136,10 @@ const languageOptions = [
   { code: "hi", label: "हिंदी" },
 ];
 
-// ********* NO PROXY, ONLY DIRECT PHOTO URL OR PRAVATAR *********
-function getPhotoUrl(photoUrl: string | undefined, name: string) {
-  // Directly use photoUrl if available and non-empty
-  if (photoUrl && photoUrl.trim() !== "")
-    return photoUrl;
-  // Otherwise fallback to pravatar
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(name)}`;
+function getPhotoUrl(studentId: number | undefined, name: string) {
+  return studentId
+    ? `https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${studentId}`
+    : `https://i.pravatar.cc/150?u=${encodeURIComponent(name)}`;
 }
 
 function getInitials(name: string | undefined | null) {
@@ -192,6 +189,7 @@ export default function SecurityDashboard() {
     i18n.changeLanguage(language);
   }, [language]);
 
+  // Fetch Students
   const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: [`${API_PREFIX}/active-passes`],
     queryFn: async () => {
@@ -200,6 +198,7 @@ export default function SecurityDashboard() {
     }
   });
 
+  // Fetch Completed Students Logs
   const { data: completedStudents = [], isLoading: completedLoading } = useQuery({
     queryKey: [`${API_PREFIX}/completed-logs`],
     queryFn: async () => {
@@ -208,6 +207,7 @@ export default function SecurityDashboard() {
     }
   });
 
+  // Fetch Stats (disabled by default)
   const { data: stats } = useQuery({
     queryKey: [`${API_PREFIX}/stats`],
     queryFn: async () => {
@@ -218,6 +218,7 @@ export default function SecurityDashboard() {
     enabled: false,
   });
 
+  // Fetch Activity Logs
   const { data: activityLogs = [] } = useQuery({
     queryKey: [`${API_PREFIX}/activity-logs`],
     queryFn: async () => {
@@ -226,6 +227,7 @@ export default function SecurityDashboard() {
     }
   });
 
+  // Mutations
   const checkOutMutation = useMutation({
     mutationFn: async (gatePassId) => {
       const res = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkout`, { method: "POST" });
@@ -293,6 +295,8 @@ export default function SecurityDashboard() {
     }
     checkInMutation.mutate({ gatePassId: student.id, isLate });
   };
+
+  const getInitialsSafe = getInitials;
 
   const fetchHistory = async (date) => {
     setHistoryLoading(true);
@@ -389,7 +393,70 @@ export default function SecurityDashboard() {
             <TabsContent value="dashboard">
               <Card className="mb-8">
                 <CardContent className="p-6">
-                  {/* ... (rest of dashboard content unchanged) ... */}
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("Student Entry/Exit Tracking")}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="md:col-span-2">
+                      <Label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">{t("Search Students")}</Label>
+                      <div className="relative">
+                        <Input
+                          id="search"
+                          placeholder={t("Search by name, course, or pass number...")}
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                        <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="passType" className="block text-sm font-medium text-gray-700 mb-2">{t("Pass Type")}</Label>
+                      <Select value={passTypeFilter} onValueChange={setPassTypeFilter}>
+                        <SelectTrigger><SelectValue placeholder={t("All Types")} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t("All Types")}</SelectItem>
+                          <SelectItem value="hourly">{t("Hourly")}</SelectItem>
+                          <SelectItem value="days">{t("Days")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">{t("Status")}</Label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger><SelectValue placeholder={t("All Students")} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t("All Students")}</SelectItem>
+                          <SelectItem value="out">{t("Checked Out Only")}</SelectItem>
+                          <SelectItem value="in">{t("Available on Campus")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="bg-blue-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div><div className="text-2xl font-bold text-blue-600">{stats?.total || 0}</div><div className="text-sm text-blue-600">{t("Total Students")}</div></div>
+                        <Users className="w-8 h-8 text-blue-500" />
+                      </div>
+                    </Card>
+                    <Card className="bg-red-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div><div className="text-2xl font-bold text-red-600">{stats?.checkedOut || 0}</div><div className="text-sm text-red-600">{t("Checked Out")}</div></div>
+                        <UserX className="w-8 h-8 text-red-500" />
+                      </div>
+                    </Card>
+                    <Card className="bg-green-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div><div className="text-2xl font-bold text-green-600">{stats?.onCampus || 0}</div><div className="text-sm text-green-600">{t("On Campus")}</div></div>
+                        <UserCheck className="w-8 h-8 text-green-500" />
+                      </div>
+                    </Card>
+                    <Card className="bg-amber-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div><div className="text-2xl font-bold text-amber-600">{stats?.hourlyPasses || 0}</div><div className="text-sm text-amber-600">{t("Hourly Passes")}</div></div>
+                        <Clock className="w-8 h-8 text-amber-500" />
+                      </div>
+                    </Card>
+                  </div>
                   <div className="space-y-4 mb-8">
                     <div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-800">{t("Active Students")}</h2><div className="text-sm text-gray-600">{filteredStudents.length} {t("students found")}</div></div>
                     {studentsLoading ? (
@@ -427,16 +494,69 @@ export default function SecurityDashboard() {
                                   <div className="flex items-start space-x-4">
                                     <Avatar className="w-16 h-16">
                                       <AvatarImage
-                                        src={getPhotoUrl(student.photoUrl, student.name)}
+                                        src={getPhotoUrl(student.id, student.name)}
                                         alt={student.name}
                                         className="object-cover"
                                         onError={e => { e.currentTarget.src = "/no-image.png"; }}
                                       />
-                                      <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                      <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
                                     </Avatar>
-                                    {/* ... (rest unchanged) ... */}
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="text-lg font-semibold text-gray-900">{student.name}</h3>
+                                      <p className="text-sm text-gray-600">{student.course}</p>
+                                      <p className="text-sm font-medium text-blue-600 mt-1">{t("Pass no:")} {student.passNumber}</p>
+                                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                                        <div className="flex items-center space-x-1">
+                                          <FileText className="w-3 h-3 text-gray-400" />
+                                          <span className="text-gray-500">{t("Reason:")}</span>
+                                          <span className="text-gray-900 font-medium">{student.reason}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1">
+                                          <MapPin className="w-3 h-3 text-gray-400" />
+                                          <span className="text-gray-500">{t("Place:")}</span>
+                                          <span className="text-gray-900 font-medium">{student.destination}</span>
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 flex items-center space-x-2">
+                                        <Badge variant={student.passType === "hourly" ? "default" : "secondary"}>
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          {t(student.passType === "hourly" ? "Hourly" : "Days")}
+                                        </Badge>
+                                        <Badge variant={student.status === "active" ? "default" : "destructive"}>
+                                          {student.status === "active" ? (
+                                            <>
+                                              <UserCheck className="w-3 h-3 mr-1" />
+                                              {t("On Campus")}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <UserX className="w-3 h-3 mr-1" />
+                                              {t("Checked Out")}
+                                              {student.checkOutTime && ` - ${formatTime(student.checkOutTime)}`}
+                                            </>
+                                          )}
+                                        </Badge>
+                                      </div>
+                                    </div>
                                   </div>
-                                  {/* ... (buttons unchanged) ... */}
+                                  <div className="flex flex-col space-y-2 ml-4">
+                                    <Button
+                                      onClick={() => handleCheckOut(student.id)}
+                                      disabled={student.status === "out" || checkOutMutation.isLoading}
+                                      className="min-w-[100px] bg-blue-500 hover:bg-blue-600"
+                                      size="sm"
+                                    >
+                                      {checkOutMutation.isLoading ? "..." : t("Check Out")}
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleCheckIn(student)}
+                                      disabled={student.status === "active" || checkInMutation.isLoading}
+                                      className={`min-w-[100px] ${isLate ? "bg-orange-500 hover:bg-orange-600" : "bg-amber-500 hover:bg-amber-600"}`}
+                                      size="sm"
+                                    >
+                                      {checkInMutation.isLoading ? "..." : t("Check In")}
+                                    </Button>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -448,7 +568,7 @@ export default function SecurityDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-            {/* ... logs and history modals ... */}
+
             <TabsContent value="logs">
               <Card>
                 <CardHeader>
@@ -458,40 +578,97 @@ export default function SecurityDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* ... (completed logs unchanged, update Avatar as below) ... */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {[...completedStudents]
-                      .sort((a, b) => {
-                        const aTime = a.checkInTime ? new Date(a.checkInTime).getTime() : (a.checkOutTime ? new Date(a.checkOutTime).getTime() : 0);
-                        const bTime = b.checkInTime ? new Date(b.checkInTime).getTime() : (b.checkOutTime ? new Date(b.checkOutTime).getTime() : 0);
-                        return bTime - aTime;
-                      })
-                      .map((student) => {
-                        // ... rest unchanged ...
-                        return (
-                          <div key={student.id} className="rounded-lg shadow border transition-all">
-                            <div className="p-5 flex flex-col gap-3">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="w-16 h-16">
-                                  <AvatarImage
-                                    src={getPhotoUrl(student.photoUrl, student.name)}
-                                    alt={student.name}
-                                    onError={e => { e.currentTarget.src = "/no-image.png"; }}
-                                  />
-                                  <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-                                </Avatar>
-                                {/* ... (rest unchanged) ... */}
-                              </div>
+                  {completedLoading ? (
+                    <div className="space-y-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                              <div className="h-3 bg-gray-300 rounded w-1/2"></div>
                             </div>
                           </div>
-                        );
-                      })}
-                  </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : completedStudents.length === 0 ? (
+                    <div className="text-center py-12">
+                      <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No completed entries")}</h3>
+                      <p className="text-gray-600">{t("Students who complete their check-in process will appear here.")}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {[...completedStudents]
+                        .sort((a, b) => {
+                          const aTime = a.checkInTime ? new Date(a.checkInTime).getTime() : (a.checkOutTime ? new Date(a.checkOutTime).getTime() : 0);
+                          const bTime = b.checkInTime ? new Date(b.checkInTime).getTime() : (b.checkOutTime ? new Date(b.checkOutTime).getTime() : 0);
+                          return bTime - aTime;
+                        })
+                        .map((student) => {
+                          const approvedReturnTime = student.toTime;
+                          const actualCheckInTime = student.checkInTime;
+                          let cardBg = "#fff";
+                          let badgeColor = "bg-green-600 text-white";
+                          let badgeText = t("Journey Completed");
+                          if (approvedReturnTime && actualCheckInTime) {
+                            const approved = new Date(approvedReturnTime);
+                            const actual = new Date(actualCheckInTime);
+                            if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
+                              if (actual <= approved) {
+                                cardBg = "#d4edda";
+                                badgeColor = "bg-green-600 text-white";
+                                badgeText = t("Journey Completed");
+                              } else {
+                                cardBg = "#fff3cd";
+                                badgeColor = "bg-orange-500 text-white";
+                                badgeText = t("Late Check-In");
+                              }
+                            }
+                          }
+                          return (
+                            <div key={student.id} className="rounded-lg shadow border transition-all" style={{ background: cardBg }}>
+                              <div className="p-5 flex flex-col gap-3">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="w-16 h-16">
+                                    <AvatarImage
+                                      src={getPhotoUrl(student.id, student.name)}
+                                      alt={student.name}
+                                      onError={e => { e.currentTarget.src = "/no-image.png"; }}
+                                    />
+                                    <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-semibold text-lg text-gray-900">{student.name}</div>
+                                    <div className="text-sm text-gray-600">ID: {student.id}</div>
+                                    <div className="text-sm text-blue-600 font-medium">{t("Pass no:")} {student.passNumber || "N/A"}</div>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1 mt-2">
+                                  <div className="flex gap-2 items-center text-base">
+                                    <span className="text-gray-700 font-medium">{t("Approved Return Time (Arrival):")}</span>
+                                    <span className="text-gray-900 font-semibold">{formatAMPM(approvedReturnTime)}</span>
+                                  </div>
+                                  <div className="flex gap-2 items-center text-base">
+                                    <span className="text-gray-700 font-medium">{t("Actual Check-In Time:")}</span>
+                                    <span className="text-gray-900 font-semibold">{formatAMPM(actualCheckInTime)}</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2">
+                                  <Badge className={badgeColor}>{badgeText}</Badge>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-          {/* ... history modal ... */}
+
           {historyModalOpen && (
             <div className="fixed z-50 inset-0 bg-black/30 flex items-center justify-center">
               <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 relative">
@@ -499,7 +676,9 @@ export default function SecurityDashboard() {
                   className="absolute top-2 right-2 text-xl"
                   onClick={() => setHistoryModalOpen(false)}
                   aria-label="Close Passes History"
-                >✖</button>
+                >
+                  ✖
+                </button>
                 <h2 className="text-xl font-bold mb-3">{t("Passes History")}</h2>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="font-medium">{t("Select Date:")}</span>
@@ -545,11 +724,11 @@ export default function SecurityDashboard() {
                                 <div className="flex items-center">
                                   <Avatar className="w-8 h-8 mr-2">
                                     <AvatarImage
-                                      src={getPhotoUrl(student.photoUrl, student.name)}
+                                      src={getPhotoUrl(student.id, student.name)}
                                       alt={student.name}
                                       onError={e => { e.currentTarget.src = "/no-image.png"; }}
                                     />
-                                    <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                    <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
                                   </Avatar>
                                   {student.name}
                                 </div>
