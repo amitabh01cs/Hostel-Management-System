@@ -137,10 +137,8 @@ const languageOptions = [
   { code: "hi", label: "हिंदी" },
 ];
 
-function getPhotoUrl(studentId: number, name: string) {
-  return studentId
-    ? `https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${studentId}`
-    : `https://i.pravatar.cc/150?u=${encodeURIComponent(name)}`;
+function getPhotoUrl(studentId: number, name : string) {
+  return `https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${studentId}`;
 }
 
 
