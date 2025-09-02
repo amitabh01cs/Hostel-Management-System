@@ -18,11 +18,9 @@ import {
 } from "lucide-react";
 import { useSecurityAuth } from "../hooks/useSecurityAuth";
 
-// i18n dependencies
 import { useTranslation, initReactI18next } from "react-i18next";
 import i18n from "i18next";
 
-// Translation resources
 const resources = {
   en: {
     translation: {
@@ -125,6 +123,7 @@ const resources = {
     }
   }
 };
+
 i18n.use(initReactI18next).init({
   resources,
   lng: "en",
@@ -137,10 +136,21 @@ const languageOptions = [
   { code: "hi", label: "हिंदी" },
 ];
 
-function getPhotoUrl(studentId: number, name : string) {
-  return `https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${studentId}`;
+function getPhotoUrl(studentId: number | undefined, name: string) {
+  return studentId
+    ? `https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${studentId}`
+    : `https://i.pravatar.cc/150?u=${encodeURIComponent(name)}`;
 }
 
+function getInitials(name: string | undefined | null) {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .filter(n => n.length > 0)
+    .map(n => n[0])
+    .join("")
+    .toUpperCase();
+}
 
 function formatTime(date: Date | string | null | undefined) {
   if (!date) return "";
@@ -148,43 +158,12 @@ function formatTime(date: Date | string | null | undefined) {
   if (isNaN(d.getTime())) return "";
   return d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
 }
+
 function formatAMPM(dateStr: string | undefined) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "";
   return d.toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit", hour12: true });
-}
-
-interface SecurityStudent {
-  id: number;
-  name: string;
-  course: string;
-  passNumber: string;
-  passType: string;
-  reason: string;
-  destination: string;
-  status: "active" | "out" | "completed";
-  checkOutTime?: string;
-  checkInTime?: string;
-  toTime?: string;
-  photoUrl?: string;
-}
-
-interface ActivityLog {
-  id: number;
-  studentName: string;
-  action: "checkout" | "checkin";
-  reason: string;
-  destination: string;
-  timestamp: string;
-}
-
-interface Stats {
-  total: number;
-  checkedOut: number;
-  onCampus: number;
-  hourlyPasses: number;
-  daysPasses: number;
 }
 
 const API_PREFIX = "https://hostel-backend-module-production-iist.up.railway.app/api/security";
@@ -203,12 +182,15 @@ export default function SecurityDashboard() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyDate, setHistoryDate] = useState<Date>(new Date());
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyData, setHistoryData] = useState<SecurityStudent[]>([]);
-  const [lateCheckInIds, setLateCheckInIds] = useState<number[]>([]);
+  const [historyData, setHistoryData] = useState([]);
+  const [lateCheckInIds, setLateCheckInIds] = useState([]);
 
-  useEffect(() => { i18n.changeLanguage(language); }, [language]);
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language]);
 
-  const { data: students = [], isLoading: studentsLoading } = useQuery<SecurityStudent[]>({
+  // Fetch Students
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: [`${API_PREFIX}/active-passes`],
     queryFn: async () => {
       const res = await fetch(`${API_PREFIX}/active-passes`);
@@ -216,7 +198,8 @@ export default function SecurityDashboard() {
     }
   });
 
-  const { data: completedStudents = [], isLoading: completedLoading } = useQuery<SecurityStudent[]>({
+  // Fetch Completed Students Logs
+  const { data: completedStudents = [], isLoading: completedLoading } = useQuery({
     queryKey: [`${API_PREFIX}/completed-logs`],
     queryFn: async () => {
       const res = await fetch(`${API_PREFIX}/completed-logs`);
@@ -224,7 +207,8 @@ export default function SecurityDashboard() {
     }
   });
 
-  const { data: stats } = useQuery<Stats>({
+  // Fetch Stats (disabled by default)
+  const { data: stats } = useQuery({
     queryKey: [`${API_PREFIX}/stats`],
     queryFn: async () => {
       const res = await fetch(`${API_PREFIX}/stats`);
@@ -234,7 +218,8 @@ export default function SecurityDashboard() {
     enabled: false,
   });
 
-  const { data: activityLogs = [] } = useQuery<ActivityLog[]>({
+  // Fetch Activity Logs
+  const { data: activityLogs = [] } = useQuery({
     queryKey: [`${API_PREFIX}/activity-logs`],
     queryFn: async () => {
       const res = await fetch(`${API_PREFIX}/activity-logs`);
@@ -242,55 +227,38 @@ export default function SecurityDashboard() {
     }
   });
 
+  // Mutations
   const checkOutMutation = useMutation({
-    mutationFn: async (gatePassId: number) => {
-      const response = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkout`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to check out");
-      return response.json();
+    mutationFn: async (gatePassId) => {
+      const res = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkout`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to check out");
+      return res.json();
     },
-    onSuccess: (data: SecurityStudent) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/active-passes`] });
       queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/activity-logs`] });
-      toast({
-        title: t("Check Out Successful"),
-        description: `${data.name} ${t("has been checked out successfully.")}`,
-      });
+      toast({ title: t("Check Out Successful"), description: `${data.name} ${t("has been checked out successfully.")}` });
     },
-    onError: (error: any) => {
-      toast({
-        title: t("Check Out Failed"),
-        description: error.message || t("Failed to check out student"),
-        variant: "destructive",
-      });
+    onError: (error) => {
+      toast({ title: t("Check Out Failed"), description: error.message || t("Failed to check out student"), variant: "destructive" });
     },
   });
 
   const checkInMutation = useMutation({
-    mutationFn: async ({ gatePassId, isLate }: { gatePassId: number, isLate: boolean }) => {
-      const response = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkin`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to check in");
-      return response.json();
+    mutationFn: async ({ gatePassId, isLate }) => {
+      const res = await fetch(`${API_PREFIX}/pass/${gatePassId}/checkin`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to check in");
+      return res.json();
     },
-    onSuccess: (data: SecurityStudent) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/active-passes`] });
       queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/completed-logs`] });
       queryClient.invalidateQueries({ queryKey: [`${API_PREFIX}/activity-logs`] });
-      toast({
-        title: t("Check In Successful"),
-        description: `${data.name} ${t("has been checked in and moved to completed logs.")}`,
-      });
+      toast({ title: t("Check In Successful"), description: `${data.name} ${t("has been checked in and moved to completed logs.")}` });
       setLateCheckInIds(ids => ids.filter(id => id !== data.id));
     },
-    onError: (error: any) => {
-      toast({
-        title: t("Check In Failed"),
-        description: error.message || t("Failed to check in student"),
-        variant: "destructive",
-      });
+    onError: (error) => {
+      toast({ title: t("Check In Failed"), description: error.message || t("Failed to check in student"), variant: "destructive" });
     },
   });
 
@@ -304,15 +272,17 @@ export default function SecurityDashboard() {
         (student.destination || "").toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesPassType = passTypeFilter === "all" || student.passType === passTypeFilter;
-      const matchesStatus = statusFilter === "all" ||
+      const matchesStatus =
+        statusFilter === "all" ||
         (statusFilter === "out" && student.status === "out") ||
         (statusFilter === "in" && student.status === "active");
       return matchesSearch && matchesPassType && matchesStatus;
     });
   }, [students, searchTerm, passTypeFilter, statusFilter]);
 
-  const handleCheckOut = (gatePassId: number) => { checkOutMutation.mutate(gatePassId); };
-  const handleCheckIn = (student: SecurityStudent) => {
+  const handleCheckOut = id => checkOutMutation.mutate(id);
+
+  const handleCheckIn = (student) => {
     let isLate = false;
     if (student.toTime) {
       const approved = new Date(student.toTime);
@@ -320,22 +290,15 @@ export default function SecurityDashboard() {
       if (!isNaN(approved.getTime()) && now > approved) isLate = true;
     }
     if (isLate) {
-      toast({
-        title: t("Late Check-In Alert"),
-        description: t("This check-in is late!"),
-        variant: "destructive"
-      });
+      toast({ title: t("Late Check-In Alert"), description: t("This check-in is late!"), variant: "destructive" });
       setLateCheckInIds(ids => [...ids, student.id]);
     }
     checkInMutation.mutate({ gatePassId: student.id, isLate });
   };
 
-  const getInitials = (name: string | undefined | null) => {
-    if (!name) return "";
-    return name.split(" ").filter(n => n.length > 0).map(n => n[0]).join("").toUpperCase();
-  };
+  const getInitialsSafe = getInitials;
 
-  const fetchHistory = async (date: Date) => {
+  const fetchHistory = async (date) => {
     setHistoryLoading(true);
     const dateStr = date.toISOString().slice(0, 10);
     const res = await fetch(`${API_PREFIX}/completed-logs?date=${dateStr}`);
@@ -345,10 +308,11 @@ export default function SecurityDashboard() {
   };
 
   const handleOpenHistory = () => { setHistoryModalOpen(true); setHistoryDate(new Date()); fetchHistory(new Date()); };
-  const handleDateChange = (date: Date) => { setHistoryDate(date); fetchHistory(date); };
+  const handleDateChange = date => { setHistoryDate(date); fetchHistory(date); };
+
   const handleDownloadExcel = () => {
     const wsData = [
-      [ t("Name"), t("Course"), t("Pass No"), t("Reason"), t("Destination"), t("Check Out"), t("Check In"), t("Journey Status") ],
+      [t("Name"), t("Course"), t("Pass No"), t("Reason"), t("Destination"), t("Check Out"), t("Check In"), t("Journey Status")],
       ...historyData.map(student => {
         let status = "";
         if (student.toTime && student.checkInTime) {
@@ -376,8 +340,12 @@ export default function SecurityDashboard() {
     XLSX.writeFile(wb, `passes-history-${historyDate.toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("securityUser");
+    window.location.href = "/login";
+  };
+
   if (loading) return <div>Loading...</div>;
-  const handleLogout = () => { localStorage.removeItem("securityUser"); window.location.href = "/login"; };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -395,44 +363,27 @@ export default function SecurityDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">
-                {new Date().toLocaleString(i18n.language, {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
+                {new Date().toLocaleString(i18n.language, { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
-              {security && (
-                <span className="text-base font-medium text-gray-900">
-                  {security.name}
-                </span>
-              )}
+              {security && <span className="text-base font-medium text-gray-900">{security.name}</span>}
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder={t("Language")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {languageOptions.map(lang => (
-                    <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
-                  ))}
+                  {languageOptions.map(lang => <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
         </div>
       </header>
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto max-h-[calc(100vh-4rem)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* View Passes History Button */}
           <div className="flex justify-end mb-4">
-            <Button
-              variant="secondary"
-              onClick={handleOpenHistory}
-              className="bg-indigo-600 text-white"
-            >{t("View Passes History")}</Button>
+            <Button variant="secondary" onClick={handleOpenHistory} className="bg-indigo-600 text-white">
+              {t("View Passes History")}
+            </Button>
           </div>
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -445,9 +396,7 @@ export default function SecurityDashboard() {
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("Student Entry/Exit Tracking")}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="md:col-span-2">
-                      <Label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                        {t("Search Students")}
-                      </Label>
+                      <Label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">{t("Search Students")}</Label>
                       <div className="relative">
                         <Input
                           id="search"
@@ -460,13 +409,9 @@ export default function SecurityDashboard() {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="passType" className="block text-sm font-medium text-gray-700 mb-2">
-                        {t("Pass Type")}
-                      </Label>
+                      <Label htmlFor="passType" className="block text-sm font-medium text-gray-700 mb-2">{t("Pass Type")}</Label>
                       <Select value={passTypeFilter} onValueChange={setPassTypeFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("All Types")} />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t("All Types")} /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">{t("All Types")}</SelectItem>
                           <SelectItem value="hourly">{t("Hourly")}</SelectItem>
@@ -475,13 +420,9 @@ export default function SecurityDashboard() {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                        {t("Status")}
-                      </Label>
+                      <Label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">{t("Status")}</Label>
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("All Students")} />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t("All Students")} /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">{t("All Students")}</SelectItem>
                           <SelectItem value="out">{t("Checked Out Only")}</SelectItem>
@@ -491,195 +432,143 @@ export default function SecurityDashboard() {
                     </div>
                   </div>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 rounded-lg p-4">
+                    <Card className="bg-blue-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-bold text-blue-600">{stats?.total || 0}</div>
-                          <div className="text-sm text-blue-600">{t("Total Students")}</div>
-                        </div>
+                        <div><div className="text-2xl font-bold text-blue-600">{stats?.total || 0}</div><div className="text-sm text-blue-600">{t("Total Students")}</div></div>
                         <Users className="w-8 h-8 text-blue-500" />
                       </div>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-4">
+                    </Card>
+                    <Card className="bg-red-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-bold text-red-600">{stats?.checkedOut || 0}</div>
-                          <div className="text-sm text-red-600">{t("Checked Out")}</div>
-                        </div>
+                        <div><div className="text-2xl font-bold text-red-600">{stats?.checkedOut || 0}</div><div className="text-sm text-red-600">{t("Checked Out")}</div></div>
                         <UserX className="w-8 h-8 text-red-500" />
                       </div>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-4">
+                    </Card>
+                    <Card className="bg-green-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-bold text-green-600">{stats?.onCampus || 0}</div>
-                          <div className="text-sm text-green-600">{t("On Campus")}</div>
-                        </div>
+                        <div><div className="text-2xl font-bold text-green-600">{stats?.onCampus || 0}</div><div className="text-sm text-green-600">{t("On Campus")}</div></div>
                         <UserCheck className="w-8 h-8 text-green-500" />
                       </div>
-                    </div>
-                    <div className="bg-amber-50 rounded-lg p-4">
+                    </Card>
+                    <Card className="bg-amber-50 rounded-lg p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-2xl font-bold text-amber-600">{stats?.hourlyPasses || 0}</div>
-                          <div className="text-sm text-amber-600">{t("Hourly Passes")}</div>
-                        </div>
+                        <div><div className="text-2xl font-bold text-amber-600">{stats?.hourlyPasses || 0}</div><div className="text-sm text-amber-600">{t("Hourly Passes")}</div></div>
                         <Clock className="w-8 h-8 text-amber-500" />
                       </div>
-                    </div>
+                    </Card>
                   </div>
-                </CardContent>
-              </Card>
-              <div className="space-y-4 mb-8">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-800">{t("Active Students")}</h2>
-                  <div className="text-sm text-gray-600">
-                    {filteredStudents.length} {t("students found")}
-                  </div>
-                </div>
-                {studentsLoading ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {[...Array(6)].map((_, i) => (
-                      <Card key={i} className="animate-pulse">
-                        <CardContent className="p-6">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                              <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : filteredStudents.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No students found")}</h3>
-                      <p className="text-gray-600">
-                        {t("Try adjusting your search terms or filters to find the students you're looking for.")}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {filteredStudents.map((student) => {
-                      const isLate =
-                        student.toTime &&
-                        student.status === "out" &&
-                        new Date() > new Date(student.toTime);
-
-                      return (
-                        <Card key={student.id} className="hover:shadow-md transition-shadow duration-200">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start space-x-4">
-                                <Avatar className="w-16 h-16">
-                                  <AvatarImage
-                                    src={getPhotoUrl(student.photoUrl, student.name)}
-                                    alt={student.name}
-                                    className="object-cover"
-                                  />
-                                  <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
-                                    {getInitials(student.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="text-lg font-semibold text-gray-900">{student.name}</h3>
-                                  <p className="text-sm text-gray-600">{student.course}</p>
-                                  <p className="text-sm font-medium text-blue-600 mt-1">
-                                    {t("Pass no:")} {student.passNumber}
-                                  </p>
-                                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                                    <div className="flex items-center space-x-1">
-                                      <FileText className="w-3 h-3 text-gray-400" />
-                                      <span className="text-gray-500">{t("Reason:")}</span>
-                                      <span className="text-gray-900 font-medium">{student.reason}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                      <MapPin className="w-3 h-3 text-gray-400" />
-                                      <span className="text-gray-500">{t("Place:")}</span>
-                                      <span className="text-gray-900 font-medium">{student.destination}</span>
-                                    </div>
-                                  </div>
-                                  <div className="mt-2 flex items-center space-x-2">
-                                    <Badge variant={student.passType === "hourly" ? "default" : "secondary"}>
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      {t(student.passType === "hourly" ? "Hourly" : "Days")}
-                                    </Badge>
-                                    <Badge variant={student.status === "active" ? "default" : "destructive"}>
-                                      {student.status === "active" ? (
-                                        <>
-                                          <UserCheck className="w-3 h-3 mr-1" />
-                                          {t("On Campus")}
-                                        </>
-                                      ) : (
-                                        <>
-                                          <UserX className="w-3 h-3 mr-1" />
-                                          {t("Checked Out")}
-                                          {student.checkOutTime && ` - ${formatTime(student.checkOutTime)}`}
-                                        </>
-                                      )}
-                                    </Badge>
-                                  </div>
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-800">{t("Active Students")}</h2><div className="text-sm text-gray-600">{filteredStudents.length} {t("students found")}</div></div>
+                    {studentsLoading ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                          <Card key={i} className="animate-pulse">
+                            <CardContent className="p-6">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
+                                <div className="flex-1 space-y-2">
+                                  <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                                  <div className="h-3 bg-gray-300 rounded w-1/2"></div>
                                 </div>
                               </div>
-                              <div className="flex flex-col space-y-2 ml-4">
-                                <Button
-                                  onClick={() => handleCheckOut(student.id)}
-                                  disabled={student.status === "out" || checkOutMutation.isPending}
-                                  className="min-w-[100px] bg-blue-500 hover:bg-blue-600"
-                                  size="sm"
-                                >
-                                  {checkOutMutation.isPending ? "..." : t("Check Out")}
-                                </Button>
-                                <Button
-                                  onClick={() => handleCheckIn(student)}
-                                  disabled={student.status === "active" || checkInMutation.isPending}
-                                  className={`min-w-[100px] ${isLate || lateCheckInIds.includes(student.id) ? "bg-orange-500 hover:bg-orange-600" : "bg-amber-500 hover:bg-amber-600"}`}
-                                  size="sm"
-                                >
-                                  {checkInMutation.isPending ? "..." : t("Check In")}
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("Recent Activity")}</h3>
-                  <div className="space-y-3">
-                    {activityLogs.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">{t("No recent activity")}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : filteredStudents.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-12 text-center">
+                          <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No students found")}</h3>
+                          <p className="text-gray-600">{t("Try adjusting your search terms or filters to find the students you're looking for.")}</p>
+                        </CardContent>
+                      </Card>
                     ) : (
-                      activityLogs.map((log) => (
-                        <div key={log.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-2 h-2 rounded-full ${
-                              log.action === "checkout" ? "bg-red-500" : "bg-green-500"
-                            }`}></div>
-                            <span className="text-sm text-gray-900">
-                              {log.studentName} {log.action === "checkout" ? t("checked out") : t("checked in")}
-                              {log.reason && log.destination && ` for ${log.reason} to ${log.destination}`}
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {formatTime(log.timestamp)}
-                          </span>
-                        </div>
-                      ))
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {filteredStudents.map(student => {
+                          const isLate = student.toTime && student.status === "out" && new Date() > new Date(student.toTime);
+                          return (
+                            <Card key={student.id} className="hover:shadow-md transition-shadow duration-200">
+                              <CardContent className="p-6">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start space-x-4">
+                                    <Avatar className="w-16 h-16">
+                                      <AvatarImage
+                                        src={getPhotoUrl(student.id, student.name)}
+                                        alt={student.name}
+                                        className="object-cover"
+                                        onError={e => { e.currentTarget.src = "/no-image.png"; }}
+                                      />
+                                      <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="text-lg font-semibold text-gray-900">{student.name}</h3>
+                                      <p className="text-sm text-gray-600">{student.course}</p>
+                                      <p className="text-sm font-medium text-blue-600 mt-1">{t("Pass no:")} {student.passNumber}</p>
+                                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                                        <div className="flex items-center space-x-1">
+                                          <FileText className="w-3 h-3 text-gray-400" />
+                                          <span className="text-gray-500">{t("Reason:")}</span>
+                                          <span className="text-gray-900 font-medium">{student.reason}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1">
+                                          <MapPin className="w-3 h-3 text-gray-400" />
+                                          <span className="text-gray-500">{t("Place:")}</span>
+                                          <span className="text-gray-900 font-medium">{student.destination}</span>
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 flex items-center space-x-2">
+                                        <Badge variant={student.passType === "hourly" ? "default" : "secondary"}>
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          {t(student.passType === "hourly" ? "Hourly" : "Days")}
+                                        </Badge>
+                                        <Badge variant={student.status === "active" ? "default" : "destructive"}>
+                                          {student.status === "active" ? (
+                                            <>
+                                              <UserCheck className="w-3 h-3 mr-1" />
+                                              {t("On Campus")}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <UserX className="w-3 h-3 mr-1" />
+                                              {t("Checked Out")}
+                                              {student.checkOutTime && ` - ${formatTime(student.checkOutTime)}`}
+                                            </>
+                                          )}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col space-y-2 ml-4">
+                                    <Button
+                                      onClick={() => handleCheckOut(student.id)}
+                                      disabled={student.status === "out" || checkOutMutation.isLoading}
+                                      className="min-w-[100px] bg-blue-500 hover:bg-blue-600"
+                                      size="sm"
+                                    >
+                                      {checkOutMutation.isLoading ? "..." : t("Check Out")}
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleCheckIn(student)}
+                                      disabled={student.status === "active" || checkInMutation.isLoading}
+                                      className={`min-w-[100px] ${isLate ? "bg-orange-500 hover:bg-orange-600" : "bg-amber-500 hover:bg-amber-600"}`}
+                                      size="sm"
+                                    >
+                                      {checkInMutation.isLoading ? "..." : t("Check In")}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
+
             <TabsContent value="logs">
               <Card>
                 <CardHeader>
@@ -707,9 +596,7 @@ export default function SecurityDashboard() {
                     <div className="text-center py-12">
                       <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">{t("No completed entries")}</h3>
-                      <p className="text-gray-600">
-                        {t("Students who complete their check-in process will appear here.")}
-                      </p>
+                      <p className="text-gray-600">{t("Students who complete their check-in process will appear here.")}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -720,84 +607,84 @@ export default function SecurityDashboard() {
                           return bTime - aTime;
                         })
                         .map((student) => {
-                        const approvedReturnTime = student.toTime;
-                        const actualCheckInTime = student.checkInTime;
-                        let cardBg = "#fff";
-                        let badgeColor = "bg-green-600 text-white";
-                        let badgeText = t("Journey Completed");
-                        if (approvedReturnTime && actualCheckInTime) {
-                          const approved = new Date(approvedReturnTime);
-                          const actual = new Date(actualCheckInTime);
-                          if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
-                            if (actual <= approved) {
-                              cardBg = "#d4edda";
-                              badgeColor = "bg-green-600 text-white";
-                              badgeText = t("Journey Completed");
-                            } else {
-                              cardBg = "#fff3cd";
-                              badgeColor = "bg-orange-500 text-white";
-                              badgeText = t("Late Check-In");
+                          const approvedReturnTime = student.toTime;
+                          const actualCheckInTime = student.checkInTime;
+                          let cardBg = "#fff";
+                          let badgeColor = "bg-green-600 text-white";
+                          let badgeText = t("Journey Completed");
+                          if (approvedReturnTime && actualCheckInTime) {
+                            const approved = new Date(approvedReturnTime);
+                            const actual = new Date(actualCheckInTime);
+                            if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
+                              if (actual <= approved) {
+                                cardBg = "#d4edda";
+                                badgeColor = "bg-green-600 text-white";
+                                badgeText = t("Journey Completed");
+                              } else {
+                                cardBg = "#fff3cd";
+                                badgeColor = "bg-orange-500 text-white";
+                                badgeText = t("Late Check-In");
+                              }
                             }
                           }
-                        }
-                        return (
-                          <div
-                            key={student.id}
-                            className="rounded-lg shadow border transition-all"
-                            style={{ background: cardBg }}
-                          >
-                            <div className="p-5 flex flex-col gap-3">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="w-16 h-16">
-                                  <AvatarImage  src={getPhotoUrl(student.id, student.name)} alt={student.name} />
-                                  <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-semibold text-lg text-gray-900">{student.name}</div>
-                                  <div className="text-sm text-gray-600">ID: {student.id}</div>
-                                  <div className="text-sm text-blue-600 font-medium">{t("Pass no:")} {student.passNumber || "N/A"}</div>
+                          return (
+                            <div key={student.id} className="rounded-lg shadow border transition-all" style={{ background: cardBg }}>
+                              <div className="p-5 flex flex-col gap-3">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="w-16 h-16">
+                                    <AvatarImage
+                                      src={getPhotoUrl(student.id, student.name)}
+                                      alt={student.name}
+                                      onError={e => { e.currentTarget.src = "/no-image.png"; }}
+                                    />
+                                    <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-semibold text-lg text-gray-900">{student.name}</div>
+                                    <div className="text-sm text-gray-600">ID: {student.id}</div>
+                                    <div className="text-sm text-blue-600 font-medium">{t("Pass no:")} {student.passNumber || "N/A"}</div>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="flex flex-col gap-1 mt-2">
-                                <div className="flex gap-2 items-center text-base">
-                                  <span className="text-gray-700 font-medium">{t("Approved Return Time (Arrival):")}</span>
-                                  <span className="text-gray-900 font-semibold">
-                                    {formatAMPM(approvedReturnTime)}
-                                  </span>
+                                <div className="flex flex-col gap-1 mt-2">
+                                  <div className="flex gap-2 items-center text-base">
+                                    <span className="text-gray-700 font-medium">{t("Approved Return Time (Arrival):")}</span>
+                                    <span className="text-gray-900 font-semibold">{formatAMPM(approvedReturnTime)}</span>
+                                  </div>
+                                  <div className="flex gap-2 items-center text-base">
+                                    <span className="text-gray-700 font-medium">{t("Actual Check-In Time:")}</span>
+                                    <span className="text-gray-900 font-semibold">{formatAMPM(actualCheckInTime)}</span>
+                                  </div>
                                 </div>
-                                <div className="flex gap-2 items-center text-base">
-                                  <span className="text-gray-700 font-medium">{t("Actual Check-In Time:")}</span>
-                                  <span className="text-gray-900 font-semibold">
-                                    {formatAMPM(actualCheckInTime)}
-                                  </span>
+                                <div className="mt-2">
+                                  <Badge className={badgeColor}>{badgeText}</Badge>
                                 </div>
-                              </div>
-                              <div className="mt-2">
-                                <Badge className={badgeColor}>{badgeText}</Badge>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
+
           {historyModalOpen && (
             <div className="fixed z-50 inset-0 bg-black/30 flex items-center justify-center">
               <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 relative">
                 <button
                   className="absolute top-2 right-2 text-xl"
                   onClick={() => setHistoryModalOpen(false)}
-                >✖</button>
+                  aria-label="Close Passes History"
+                >
+                  ✖
+                </button>
                 <h2 className="text-xl font-bold mb-3">{t("Passes History")}</h2>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="font-medium">{t("Select Date:")}</span>
                   <DatePicker
                     selected={historyDate}
-                    onChange={date => date && handleDateChange(date)}
+                    onChange={date => date && setHistoryDate(date)}
                     maxDate={new Date()}
                     dateFormat="yyyy-MM-dd"
                     className="input"
@@ -808,7 +695,7 @@ export default function SecurityDashboard() {
                   </Button>
                 </div>
                 {historyLoading ? (
-                  <div className="py-10 text-center">Loading...</div>
+                  <div className="py-10 text-center">{t("Loading...")}</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full border mb-2">
@@ -826,7 +713,9 @@ export default function SecurityDashboard() {
                       </thead>
                       <tbody>
                         {historyData.length === 0 ? (
-                          <tr><td colSpan={8} className="text-center py-8">{t("No data found")}</td></tr>
+                          <tr>
+                            <td colSpan={8} className="text-center py-8">{t("No data found")}</td>
+                          </tr>
                         ) : (
                           historyData.map((student, idx) => (
                             <tr key={student.id}>
@@ -834,8 +723,12 @@ export default function SecurityDashboard() {
                               <td className="border px-2 py-1">
                                 <div className="flex items-center">
                                   <Avatar className="w-8 h-8 mr-2">
-                                    <AvatarImage  src={getPhotoUrl(student.id, student.name)} />
-                                    <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                    <AvatarImage
+                                      src={getPhotoUrl(student.id, student.name)}
+                                      alt={student.name}
+                                      onError={e => { e.currentTarget.src = "/no-image.png"; }}
+                                    />
+                                    <AvatarFallback>{getInitialsSafe(student.name)}</AvatarFallback>
                                   </Avatar>
                                   {student.name}
                                 </div>
@@ -856,9 +749,9 @@ export default function SecurityDashboard() {
               </div>
             </div>
           )}
+
           <div className="flex justify-end mt-8">
             <Button
-              type="button"
               variant="destructive"
               size="lg"
               className="flex items-center space-x-2"
@@ -874,4 +767,3 @@ export default function SecurityDashboard() {
     </div>
   );
 }
-
