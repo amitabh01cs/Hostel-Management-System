@@ -16,7 +16,6 @@ import { useAdminAuth } from "../hooks/useAdminAuth";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import * as XLSX from "xlsx";
-
 // Helper: convert Date to local datetime-local input string "YYYY-MM-DDTHH:mm"
 function toLocalDatetimeLocalString(date) {
   if (!date) return "";
@@ -24,15 +23,17 @@ function toLocalDatetimeLocalString(date) {
   const localISO = new Date(date - tzoffset).toISOString().slice(0, 16);
   return localISO;
 }
-
 // Show HH:mm in local time 24hr format
 function formatTimeLocal(dateString) {
   if (!dateString) return "";
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return "";
-  return d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
+  return (
+    d.getHours().toString().padStart(2, "0") +
+    ":" +
+    d.getMinutes().toString().padStart(2, "0")
+  );
 }
-
 // Format date as DD/MM/YYYY local time
 function formatDateLocal(dateString) {
   if (!dateString) return "";
@@ -40,35 +41,31 @@ function formatDateLocal(dateString) {
   if (isNaN(d.getTime())) return "";
   return d.getDate() + "/" + (d.getMonth() + 1) + "/" + d.getFullYear();
 }
-
 function getUTCDateOnly(date) {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
   if (isNaN(d.getTime())) return "";
-  return d.getUTCFullYear() + "-" +
-    String(d.getUTCMonth() + 1).padStart(2, "0") + "-" +
-    String(d.getUTCDate()).padStart(2, "0");
+  return (
+    d.getUTCFullYear() +
+    "-" +
+    String(d.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getUTCDate()).padStart(2, "0")
+  );
 }
-
 function getInitials(name) {
   if (!name) return "";
   return name
     .split(" ")
-    .filter(n => n.length > 0)
-    .map(n => n[0])
+    .filter((n) => n.length > 0)
+    .map((n) => n[0])
     .join("")
     .toUpperCase();
 }
-
 const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass";
-const checkInOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/completed-logs";
-
-function EditPassPeriodModal({
-  pass,
-  open,
-  onClose,
-  onSave,
-}) {
+const checkInOutUrl =
+  "https://hostel-backend-module-production-iist.up.railway.app/api/security/completed-logs";
+function EditPassPeriodModal({ pass, open, onClose, onSave }) {
   const [from, setFrom] = useState(
     pass?.leaveDate ? toLocalDatetimeLocalString(new Date(pass.leaveDate)) : ""
   );
@@ -76,27 +73,22 @@ function EditPassPeriodModal({
     pass?.returnDate ? toLocalDatetimeLocalString(new Date(pass.returnDate)) : ""
   );
   const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     setFrom(pass?.leaveDate ? toLocalDatetimeLocalString(new Date(pass.leaveDate)) : "");
     setTo(pass?.returnDate ? toLocalDatetimeLocalString(new Date(pass.returnDate)) : "");
   }, [pass]);
-
   const handleSave = async () => {
     setLoading(true);
     await onSave(from, to);
     setLoading(false);
     onClose();
   };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Pass Period</DialogTitle>
-          <DialogDescription>
-            Change the Out Time and In Time for this pass
-          </DialogDescription>
+          <DialogDescription>Change the Out Time and In Time for this pass</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -105,7 +97,7 @@ function EditPassPeriodModal({
               type="datetime-local"
               className="border p-2 w-full rounded"
               value={from}
-              onChange={e => setFrom(e.target.value)}
+              onChange={(e) => setFrom(e.target.value)}
             />
           </div>
           <div>
@@ -114,7 +106,7 @@ function EditPassPeriodModal({
               type="datetime-local"
               className="border p-2 w-full rounded"
               value={to}
-              onChange={e => setTo(e.target.value)}
+              onChange={(e) => setTo(e.target.value)}
             />
           </div>
         </div>
@@ -130,7 +122,6 @@ function EditPassPeriodModal({
     </Dialog>
   );
 }
-
 const mapBackendToLeaveRequest = (g) => ({
   id: g.id,
   studentId: g.student?.id ?? 0,
@@ -151,7 +142,6 @@ const mapBackendToLeaveRequest = (g) => ({
   address: g.address ?? g.placeToVisit ?? "",
   photoPath: g.student?.photoPath ?? "",
 });
-
 const RequestLeave = () => {
   const [requests, setRequests] = useState([]);
   const [detailsRequest, setDetailsRequest] = useState(null);
@@ -159,30 +149,23 @@ const RequestLeave = () => {
   const [editRequest, setEditRequest] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { toast } = useToast();
-
   const { admin, loading } = useAdminAuth();
-
   const [showHistory, setShowHistory] = useState(false);
   const [historyDates, setHistoryDates] = useState([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState(null);
-
   const [showCheckInOut, setShowCheckInOut] = useState(false);
   const [checkInOutDate, setCheckInOutDate] = useState(new Date());
   const [checkInOutData, setCheckInOutData] = useState([]);
   const [checkInOutLoading, setCheckInOutLoading] = useState(false);
-
   const today = new Date();
   const todayUTC = getUTCDateOnly(today);
-
   const [todaysPasses, setTodaysPasses] = useState([]);
-
   useEffect(() => {
     if (!loading && !admin) {
       window.location.href = "/login";
       return;
     }
     if (loading || !admin) return;
-
     const adminType = admin.adminType ? admin.adminType.trim().toLowerCase() : "";
     let url = `${backendUrl}/all`;
     if (adminType === "varahmihir") {
@@ -190,53 +173,46 @@ const RequestLeave = () => {
     } else if (adminType === "maitreyi") {
       url += "?gender=F";
     }
-
     fetch(url)
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data) => {
         const mapped = data.map(mapBackendToLeaveRequest);
-
         mapped.sort((a, b) => {
           const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return bTime - aTime;
         });
-
         setRequests(mapped);
-        const onlyToday = mapped.filter(r => getUTCDateOnly(r.createdAt) === todayUTC);
+        const onlyToday = mapped.filter((r) => getUTCDateOnly(r.createdAt) === todayUTC);
         setTodaysPasses(onlyToday);
-
         const uniqueHistoryDates = [
           ...new Set(
             mapped
-              .map(r => getUTCDateOnly(r.createdAt))
+              .map((r) => getUTCDateOnly(r.createdAt))
               .filter(Boolean)
           ),
         ];
-        const historyDatesArr = uniqueHistoryDates.map(d => {
+        const historyDatesArr = uniqueHistoryDates.map((d) => {
           const dt = new Date(d + "T00:00:00Z");
           dt.setUTCHours(0, 0, 0, 0);
           return dt;
         });
         setHistoryDates(historyDatesArr);
-
-        const todayDateObj = historyDatesArr.find(d => getUTCDateOnly(d) === todayUTC);
+        const todayDateObj = historyDatesArr.find((d) => getUTCDateOnly(d) === todayUTC);
         if (todayDateObj) {
           setSelectedHistoryDate(todayDateObj);
         } else if (historyDatesArr.length > 0) {
-          setSelectedHistoryDate(historyDatesArr.slice().sort((a, b) => b.getTime() - a.getTime())[0]);
+          setSelectedHistoryDate(
+            historyDatesArr.slice().sort((a, b) => b.getTime() - a.getTime())[0]
+          );
         } else {
           setSelectedHistoryDate(null);
         }
       });
   }, [admin, loading, isEditModalOpen]);
-
-  const historyPasses = requests
-    .filter(r =>
-      selectedHistoryDate &&
-      getUTCDateOnly(r.createdAt) === getUTCDateOnly(selectedHistoryDate)
-    );
-
+  const historyPasses = requests.filter(
+    (r) => selectedHistoryDate && getUTCDateOnly(r.createdAt) === getUTCDateOnly(selectedHistoryDate)
+  );
   useEffect(() => {
     if (!showCheckInOut) return;
     setCheckInOutLoading(true);
@@ -248,7 +224,7 @@ const RequestLeave = () => {
       url += "&gender=F";
     }
     fetch(url)
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data) => {
         if (!Array.isArray(data)) {
           setCheckInOutData([]);
@@ -271,7 +247,6 @@ const RequestLeave = () => {
       })
       .finally(() => setCheckInOutLoading(false));
   }, [showCheckInOut, checkInOutDate, admin]);
-
   const handleEditPassPeriod = async (from, to) => {
     if (!editRequest) return;
     const res = await fetch(`${backendUrl}/${editRequest.id}/edit-time`, {
@@ -285,45 +260,41 @@ const RequestLeave = () => {
       toast({ title: "Update failed!", variant: "destructive" });
     }
   };
-
   const handleDownloadRow = (row) => {
-    const ws = XLSX.utils.json_to_sheet([{
-      "Student ID": row.studentId,
-      "Student Name": row.studentName,
-      "Room No": row.roomNo,
-      "Stream": row.stream,
-      "Permission Type": row.permissionType,
-      "Address": row.address,
-      "Leave From": row.leaveDate,
-      "Leave To": row.returnDate,
-      "Reason": row.reason,
-      "Status": row.status,
-      "Contact": row.contactNo,
-    }]);
+    const ws = XLSX.utils.json_to_sheet([
+      {
+        "Student ID": row.studentId,
+        "Student Name": row.studentName,
+        "Room No": row.roomNo,
+        Stream: row.stream,
+        "Permission Type": row.permissionType,
+        Address: row.address,
+        "Leave From": row.leaveDate,
+        "Leave To": row.returnDate,
+        Reason: row.reason,
+        Status: row.status,
+        Contact: row.contactNo,
+      },
+    ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "GatePass");
     XLSX.writeFile(wb, `GatePass_${row.studentName}_${row.id}.xlsx`);
   };
-
   const columns = [
     {
       id: "photo",
       header: "Photo",
       cell: ({ row }) => {
-        const photoPath = row.original.photoPath;
         const name = row.original.studentName;
-        return photoPath
-          ? <img
-              src={`https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${row.original.studentId}`}
-              alt={name}
-              className="w-10 h-10 rounded-full object-cover border"
-              style={{ minWidth: 40, minHeight: 40 }}
-            />
-          : (
-            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-lg font-bold text-gray-700 border">
-              {getInitials(name)}
-            </div>
-          );
+        return (
+          <img
+            src={`https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${row.original.studentId}`}
+            alt={name}
+            className="w-10 h-10 rounded-full object-cover border"
+            style={{ minWidth: 40, minHeight: 40 }}
+            onError={(e) => (e.currentTarget.src = "/no-image.png")}
+          />
+        );
       },
     },
     {
@@ -367,15 +338,12 @@ const RequestLeave = () => {
         } else if (passType && passType.toUpperCase() === "DAYS") {
           return (
             <>
-              {formatDateLocal(leaveDate)} {formatTimeLocal(leaveDate)} - {formatDateLocal(returnDate)} {formatTimeLocal(returnDate)}
+              {formatDateLocal(leaveDate)} {formatTimeLocal(leaveDate)} -{" "}
+              {formatDateLocal(returnDate)} {formatTimeLocal(returnDate)}
             </>
           );
         } else {
-          return (
-            <>
-              {formatDateLocal(leaveDate)} - {formatDateLocal(returnDate)}
-            </>
-          );
+          return <>{formatDateLocal(leaveDate)} - {formatDateLocal(returnDate)}</>;
         }
       },
     },
@@ -389,18 +357,14 @@ const RequestLeave = () => {
       header: "Status",
       cell: ({ row }) => {
         const status = row.original.status;
-        return (
-          <Badge className={cn("status-badge", getStatusColor(status))}>
-            {status}
-          </Badge>
-        );
-      }
+        return <Badge className={cn("status-badge", getStatusColor(status))}>{status}</Badge>;
+      },
     },
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
-        if (!todaysPasses.some(r => r.id === row.original.id)) return null;
+        if (!todaysPasses.some((r) => r.id === row.original.id)) return null;
         const request = row.original;
         const isPending = request.status === "Pending";
         return (
@@ -413,14 +377,14 @@ const RequestLeave = () => {
                   className="text-green-600 hover:text-green-700 hover:bg-green-50"
                   onClick={() => {
                     fetch(`${backendUrl}/${request.id}/status?status=approved`, { method: "POST" })
-                      .then(res => res.json())
+                      .then((res) => res.json())
                       .then(() => {
                         toast({ title: "Leave Request Approved" });
-                        setRequests(prev =>
-                          prev.map(r => r.id === request.id ? { ...r, status: "Approved" } : r)
+                        setRequests((prev) =>
+                          prev.map((r) => (r.id === request.id ? { ...r, status: "Approved" } : r))
                         );
-                        setTodaysPasses(prev =>
-                          prev.map(r => r.id === request.id ? { ...r, status: "Approved" } : r)
+                        setTodaysPasses((prev) =>
+                          prev.map((r) => (r.id === request.id ? { ...r, status: "Approved" } : r))
                         );
                       });
                   }}
@@ -433,14 +397,14 @@ const RequestLeave = () => {
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   onClick={() => {
                     fetch(`${backendUrl}/${request.id}/status?status=rejected`, { method: "POST" })
-                      .then(res => res.json())
+                      .then((res) => res.json())
                       .then(() => {
                         toast({ title: "Leave Request Rejected" });
-                        setRequests(prev =>
-                          prev.map(r => r.id === request.id ? { ...r, status: "Rejected" } : r)
+                        setRequests((prev) =>
+                          prev.map((r) => (r.id === request.id ? { ...r, status: "Rejected" } : r))
                         );
-                        setTodaysPasses(prev =>
-                          prev.map(r => r.id === request.id ? { ...r, status: "Rejected" } : r)
+                        setTodaysPasses((prev) =>
+                          prev.map((r) => (r.id === request.id ? { ...r, status: "Rejected" } : r))
                         );
                       });
                   }}
@@ -483,7 +447,6 @@ const RequestLeave = () => {
       },
     },
   ];
-
   // Columns for Check-In/Out Table
   const checkInOutColumns = [
     {
@@ -521,20 +484,20 @@ const RequestLeave = () => {
     {
       id: "checkOutTime",
       header: "Check-Out Time",
-      cell: ({ row }) =>
-        row.original.checkOutTime ? formatTimeLocal(row.original.checkOutTime) : "-",
+      cell: ({ row }) => (row.original.checkOutTime ? formatTimeLocal(row.original.checkOutTime) : "-"),
     },
     {
       id: "checkInTime",
       header: "Check-In Time",
-      cell: ({ row }) =>
-        row.original.checkInTime ? formatTimeLocal(row.original.checkInTime) : "-",
+      cell: ({ row }) => (row.original.checkInTime ? formatTimeLocal(row.original.checkInTime) : "-"),
     },
   ];
-
   if (loading || !admin)
-    return <Layout2><div className="p-8">Loading...</div></Layout2>;
-
+    return (
+      <Layout2>
+        <div className="p-8">Loading...</div>
+      </Layout2>
+    );
   return (
     <Layout2>
       <div>
@@ -561,9 +524,7 @@ const RequestLeave = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Today's Leave Requests</CardTitle>
-            <CardDescription>
-              Only passes strictly generated on today's date will appear here.
-            </CardDescription>
+            <CardDescription>Only passes strictly generated on today's date will appear here.</CardDescription>
           </CardHeader>
           <CardContent>
             <DataTable
@@ -572,27 +533,21 @@ const RequestLeave = () => {
               searchColumn="studentName"
               searchPlaceholder="Search by student name..."
             />
-            {todaysPasses.length === 0 && (
-              <div className="pt-4">No passes found for today.</div>
-            )}
+            {todaysPasses.length === 0 && <div className="pt-4">No passes found for today.</div>}
           </CardContent>
         </Card>
-
-
         {/* Pass History Modal */}
         <Dialog open={showHistory} onOpenChange={setShowHistory}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Pass History</DialogTitle>
-              <DialogDescription>
-                Only passes generated on the selected date will be shown.
-              </DialogDescription>
+              <DialogDescription>Only passes generated on the selected date will be shown.</DialogDescription>
             </DialogHeader>
             <div className="flex items-center gap-2 mb-4">
               <label className="font-medium">Select Date:</label>
               <DatePicker
                 selected={selectedHistoryDate}
-                onChange={date => date && setSelectedHistoryDate(date)}
+                onChange={(date) => date && setSelectedHistoryDate(date)}
                 includeDates={historyDates}
                 dateFormat="yyyy-MM-dd"
                 className="input"
@@ -602,19 +557,21 @@ const RequestLeave = () => {
               />
               <Button
                 onClick={() => {
-                  const ws = XLSX.utils.json_to_sheet(historyPasses.map(row => ({
-                    "Student ID": row.studentId,
-                    "Student Name": row.studentName,
-                    "Room No": row.roomNo,
-                    "Stream": row.stream,
-                    "Permission Type": row.permissionType,
-                    "Address": row.address,
-                    "Leave From": row.leaveDate,
-                    "Leave To": row.returnDate,
-                    "Reason": row.reason,
-                    "Status": row.status,
-                    "Contact": row.contactNo,
-                  })));
+                  const ws = XLSX.utils.json_to_sheet(
+                    historyPasses.map((row) => ({
+                      "Student ID": row.studentId,
+                      "Student Name": row.studentName,
+                      "Room No": row.roomNo,
+                      Stream: row.stream,
+                      "Permission Type": row.permissionType,
+                      Address: row.address,
+                      "Leave From": row.leaveDate,
+                      "Leave To": row.returnDate,
+                      Reason: row.reason,
+                      Status: row.status,
+                      Contact: row.contactNo,
+                    }))
+                  );
                   const wb = XLSX.utils.book_new();
                   XLSX.utils.book_append_sheet(wb, ws, "GatePassHistory");
                   XLSX.writeFile(wb, `GatePassHistory_${getUTCDateOnly(selectedHistoryDate)}.xlsx`);
@@ -626,14 +583,12 @@ const RequestLeave = () => {
               </Button>
             </div>
             <DataTable
-              columns={columns.filter(col => col.id !== "actions" && col.id !== "download")}
+              columns={columns.filter((col) => col.id !== "actions" && col.id !== "download")}
               data={historyPasses}
               searchColumn="studentName"
               searchPlaceholder="Search by student name..."
             />
-            {historyPasses.length === 0 && (
-              <div className="pt-4">No passes found for this date.</div>
-            )}
+            {historyPasses.length === 0 && <div className="pt-4">No passes found for this date.</div>}
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowHistory(false)}>
                 Close
@@ -641,16 +596,12 @@ const RequestLeave = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-
         {/* Leave Request Details Dialog */}
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Leave Request Details</DialogTitle>
-              <DialogDescription>
-                Leave request information for {detailsRequest?.studentName}
-              </DialogDescription>
+              <DialogDescription>Leave request information for {detailsRequest?.studentName}</DialogDescription>
             </DialogHeader>
             {detailsRequest?.photoPath && (
               <div className="flex justify-center mb-6">
@@ -658,7 +609,7 @@ const RequestLeave = () => {
                   src={`https://hostel-backend-module-production-iist.up.railway.app/api/student/photo/${detailsRequest?.studentId}`}
                   alt={detailsRequest?.studentName}
                   className="w-32 h-32 rounded-full object-cover border"
-                  onError={(e) => e.currentTarget.src = "/no-image.png"}
+                  onError={(e) => (e.currentTarget.src = "/no-image.png")}
                 />
               </div>
             )}
@@ -690,24 +641,24 @@ const RequestLeave = () => {
               <div className="space-y-1">
                 <p className="text-sm font-medium">Pass Period</p>
                 <p className="text-sm text-gray-700">
-                  {detailsRequest?.passType?.toUpperCase() === "HOUR"
-                    ? (
-                      <>
-                        {formatTimeLocal(detailsRequest?.leaveDate)} - {formatTimeLocal(detailsRequest?.returnDate)}
-                      </>
-                    )
-                    : detailsRequest?.passType?.toUpperCase() === "DAYS"
-                      ? (
-                        <>
-                          {formatDateLocal(detailsRequest?.leaveDate)} {formatTimeLocal(detailsRequest?.leaveDate)} - {formatDateLocal(detailsRequest?.returnDate)} {formatTimeLocal(detailsRequest?.returnDate)}
-                        </>
-                      )
-                      : (
-                        <>
-                          {formatDateLocal(detailsRequest?.leaveDate)} - {formatDateLocal(detailsRequest?.returnDate)}
-                        </>
-                      )
-                  }
+                  {detailsRequest?.passType?.toUpperCase() === "HOUR" ? (
+                    <>
+                      {formatTimeLocal(detailsRequest?.leaveDate)} -{" "}
+                      {formatTimeLocal(detailsRequest?.returnDate)}
+                    </>
+                  ) : detailsRequest?.passType?.toUpperCase() === "DAYS" ? (
+                    <>
+                      {formatDateLocal(detailsRequest?.leaveDate)}{" "}
+                      {formatTimeLocal(detailsRequest?.leaveDate)} -{" "}
+                      {formatDateLocal(detailsRequest?.returnDate)}{" "}
+                      {formatTimeLocal(detailsRequest?.returnDate)}
+                    </>
+                  ) : (
+                    <>
+                      {formatDateLocal(detailsRequest?.leaveDate)} -{" "}
+                      {formatDateLocal(detailsRequest?.returnDate)}
+                    </>
+                  )}
                 </p>
               </div>
               <div className="space-y-1">
@@ -726,8 +677,6 @@ const RequestLeave = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-
         {/* Edit Pass Period Modal */}
         <EditPassPeriodModal
           pass={editRequest}
@@ -739,5 +688,4 @@ const RequestLeave = () => {
     </Layout2>
   );
 };
-
 export default RequestLeave;
