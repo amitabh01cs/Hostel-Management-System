@@ -17,7 +17,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import * as XLSX from "xlsx";
 
-// Helper: convert Date to local datetime-local string for input
+// Helper: convert Date to local datetime-local input string "YYYY-MM-DDTHH:mm"
 function toLocalDatetimeLocalString(date) {
   if (!date) return "";
   const tzoffset = date.getTimezoneOffset() * 60000; //offset in ms
@@ -25,7 +25,7 @@ function toLocalDatetimeLocalString(date) {
   return localISO;
 }
 
-// Format time in HH:mm local time
+// Show HH:mm in local time 24hr format
 function formatTimeLocal(dateString) {
   if (!dateString) return "";
   const d = new Date(dateString);
@@ -33,15 +33,23 @@ function formatTimeLocal(dateString) {
   return d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
 }
 
-// Format date display as DD/MM/YYYY local time
-function formatDateDisplayLocal(dateString) {
+// Format date as DD/MM/YYYY local time
+function formatDateLocal(dateString) {
   if (!dateString) return "";
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return "";
   return d.getDate() + "/" + (d.getMonth() + 1) + "/" + d.getFullYear();
 }
 
-// Function to get initials from name
+function getUTCDateOnly(date) {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return "";
+  return d.getUTCFullYear() + "-" +
+    String(d.getUTCMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getUTCDate()).padStart(2, "0");
+}
+
 function getInitials(name) {
   if (!name) return "";
   return name
@@ -69,7 +77,6 @@ function EditPassPeriodModal({
   );
   const [loading, setLoading] = useState(false);
 
-  // Update state when pass changes
   useEffect(() => {
     setFrom(pass?.leaveDate ? toLocalDatetimeLocalString(new Date(pass.leaveDate)) : "");
     setTo(pass?.returnDate ? toLocalDatetimeLocalString(new Date(pass.returnDate)) : "");
@@ -137,6 +144,7 @@ const mapBackendToLeaveRequest = (g) => ({
   createdAt: g.createdAt ?? "",
   contactNo: g.student?.mobileNo ?? "",
   gender: g.student?.gender ?? "",
+  status: g.status.charAt(0).toUpperCase() + g.status.slice(1).toLowerCase(),
   roomNo: g.student?.roomNo ?? "",
   branch: g.student?.branch ?? "",
   yearOfStudy: g.student?.yearOfStudy ?? "",
@@ -163,7 +171,8 @@ const RequestLeave = () => {
   const [checkInOutData, setCheckInOutData] = useState([]);
   const [checkInOutLoading, setCheckInOutLoading] = useState(false);
 
-  const todayUTC = new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const todayUTC = getUTCDateOnly(today);
 
   const [todaysPasses, setTodaysPasses] = useState([]);
 
@@ -194,31 +203,45 @@ const RequestLeave = () => {
         });
 
         setRequests(mapped);
-        const onlyToday = mapped.filter(r => r.createdAt?.slice(0, 10) === todayUTC);
+        const onlyToday = mapped.filter(r => getUTCDateOnly(r.createdAt) === todayUTC);
         setTodaysPasses(onlyToday);
 
-        const uniqueHistoryDates = [...new Set(mapped.map(r => r.createdAt?.slice(0, 10)).filter(Boolean))];
-        const datesArr = uniqueHistoryDates.map(d => new Date(d + "T00:00:00"));
-        setHistoryDates(datesArr);
+        const uniqueHistoryDates = [
+          ...new Set(
+            mapped
+              .map(r => getUTCDateOnly(r.createdAt))
+              .filter(Boolean)
+          ),
+        ];
+        const historyDatesArr = uniqueHistoryDates.map(d => {
+          const dt = new Date(d + "T00:00:00Z");
+          dt.setUTCHours(0, 0, 0, 0);
+          return dt;
+        });
+        setHistoryDates(historyDatesArr);
 
-        const todayDateObj = datesArr.find(d => d.toISOString().slice(0,10) === todayUTC);
+        const todayDateObj = historyDatesArr.find(d => getUTCDateOnly(d) === todayUTC);
         if (todayDateObj) {
           setSelectedHistoryDate(todayDateObj);
-        } else if (datesArr.length > 0) {
-          setSelectedHistoryDate(datesArr.sort((a,b) => b.getTime() - a.getTime())[0]);
+        } else if (historyDatesArr.length > 0) {
+          setSelectedHistoryDate(historyDatesArr.slice().sort((a, b) => b.getTime() - a.getTime())[0]);
         } else {
           setSelectedHistoryDate(null);
         }
       });
   }, [admin, loading, isEditModalOpen]);
 
-  const historyPasses = requests.filter(r => selectedHistoryDate && r.createdAt?.slice(0,10) === selectedHistoryDate.toISOString().slice(0,10));
+  const historyPasses = requests
+    .filter(r =>
+      selectedHistoryDate &&
+      getUTCDateOnly(r.createdAt) === getUTCDateOnly(selectedHistoryDate)
+    );
 
   useEffect(() => {
     if (!showCheckInOut) return;
     setCheckInOutLoading(true);
     const adminType = admin?.adminType ? admin.adminType.trim().toLowerCase() : "";
-    let url = `${checkInOutUrl}?date=${checkInOutDate.toISOString().slice(0,10)}`;
+    let url = `${checkInOutUrl}?date=${getUTCDateOnly(checkInOutDate)}`;
     if (adminType === "varahmihir") {
       url += "&gender=M";
     } else if (adminType === "maitreyi") {
@@ -234,15 +257,15 @@ const RequestLeave = () => {
         const mapped = data.map((r) => ({
           id: r.id,
           studentId: r.studentId,
-          studentName: r.studentName ?? r.fullName ?? "",
-          gender: r.gender ?? "",
-          course: r.course ?? r.branch ?? "",
-          branch: r.branch ?? "",
-          checkOutTime: r.checkOutTime ?? null,
-          checkInTime: r.checkInTime ?? null,
-          passType: r.passType ?? "",
-          reason: r.reason ?? "",
-          destination: r.destination ?? "",
+          studentName: r.studentName || r.fullName || "",
+          gender: r.gender || "",
+          course: r.course || r.branch || "",
+          branch: r.branch || "",
+          checkOutTime: r.checkOutTime || null,
+          checkInTime: r.checkInTime || null,
+          passType: r.passType || "",
+          reason: r.reason || "",
+          destination: r.destination || "",
         }));
         setCheckInOutData(mapped);
       })
@@ -303,11 +326,26 @@ const RequestLeave = () => {
           );
       },
     },
-    { accessorKey: "studentId", header: "Student ID" },
-    { accessorKey: "studentName", header: "Student Name" },
-    { accessorKey: "roomNo", header: "Room No" },
-    { accessorKey: "stream", header: "Stream" },
-    { accessorKey: "permissionType", header: "Permission Type" },
+    {
+      accessorKey: "studentId",
+      header: "Student ID",
+    },
+    {
+      accessorKey: "studentName",
+      header: "Student Name",
+    },
+    {
+      accessorKey: "roomNo",
+      header: "Room No",
+    },
+    {
+      accessorKey: "stream",
+      header: "Stream",
+    },
+    {
+      accessorKey: "permissionType",
+      header: "Permission Type",
+    },
     {
       id: "address",
       header: "Address",
@@ -317,23 +355,25 @@ const RequestLeave = () => {
       id: "passPeriod",
       header: "Pass Period",
       cell: ({ row }) => {
-        const p = row.original;
-        if (p.passType?.toUpperCase() === "HOUR") {
+        const passType = row.original.passType;
+        const leaveDate = row.original.leaveDate;
+        const returnDate = row.original.returnDate;
+        if (passType && passType.toUpperCase() === "HOUR") {
           return (
             <>
-              {formatTimeLocal(p.leaveDate)} - {formatTimeLocal(p.returnDate)}
+              {formatTimeLocal(leaveDate)} - {formatTimeLocal(returnDate)}
             </>
           );
-        } else if (p.passType?.toUpperCase() === "DAYS") {
+        } else if (passType && passType.toUpperCase() === "DAYS") {
           return (
             <>
-              {formatDateDisplayLocal(p.leaveDate)} {formatTimeLocal(p.leaveDate)} - {formatDateDisplayLocal(p.returnDate)} {formatTimeLocal(p.returnDate)}
+              {formatDateLocal(leaveDate)} {formatTimeLocal(leaveDate)} - {formatDateLocal(returnDate)} {formatTimeLocal(returnDate)}
             </>
           );
         } else {
           return (
             <>
-              {formatDateDisplayLocal(p.leaveDate)} - {formatDateDisplayLocal(p.returnDate)}
+              {formatDateLocal(leaveDate)} - {formatDateLocal(returnDate)}
             </>
           );
         }
@@ -342,16 +382,19 @@ const RequestLeave = () => {
     {
       accessorKey: "createdAt",
       header: "Pass Generated",
-      cell: ({ row }) => formatDateDisplayLocal(row.original.createdAt),
+      cell: ({ row }) => formatDateLocal(row.original.createdAt),
     },
     {
       id: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <Badge className={cn("status-badge", getStatusColor(row.original.status))}>
-          {row.original.status}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const status = row.original.status;
+        return (
+          <Badge className={cn("status-badge", getStatusColor(status))}>
+            {status}
+          </Badge>
+        );
+      }
     },
     {
       id: "actions",
@@ -373,8 +416,12 @@ const RequestLeave = () => {
                       .then(res => res.json())
                       .then(() => {
                         toast({ title: "Leave Request Approved" });
-                        setRequests(prev => prev.map(r => r.id === request.id ? { ...r, status: "Approved" } : r));
-                        setTodaysPasses(prev => prev.map(r => r.id === request.id ? { ...r, status: "Approved" } : r));
+                        setRequests(prev =>
+                          prev.map(r => r.id === request.id ? { ...r, status: "Approved" } : r)
+                        );
+                        setTodaysPasses(prev =>
+                          prev.map(r => r.id === request.id ? { ...r, status: "Approved" } : r)
+                        );
                       });
                   }}
                 >
@@ -389,8 +436,12 @@ const RequestLeave = () => {
                       .then(res => res.json())
                       .then(() => {
                         toast({ title: "Leave Request Rejected" });
-                        setRequests(prev => prev.map(r => r.id === request.id ? { ...r, status: "Rejected" } : r));
-                        setTodaysPasses(prev => prev.map(r => r.id === request.id ? { ...r, status: "Rejected" } : r));
+                        setRequests(prev =>
+                          prev.map(r => r.id === request.id ? { ...r, status: "Rejected" } : r)
+                        );
+                        setTodaysPasses(prev =>
+                          prev.map(r => r.id === request.id ? { ...r, status: "Rejected" } : r)
+                        );
                       });
                   }}
                 >
@@ -435,23 +486,49 @@ const RequestLeave = () => {
 
   // Columns for Check-In/Out Table
   const checkInOutColumns = [
-    { accessorKey: "studentId", header: "Student ID" },
-    { accessorKey: "studentName", header: "Student Name" },
-    { accessorKey: "gender", header: "Gender" },
-    { accessorKey: "course", header: "Course" },
-    { accessorKey: "branch", header: "Branch" },
-    { accessorKey: "passType", header: "Pass Type" },
-    { accessorKey: "reason", header: "Reason" },
-    { accessorKey: "destination", header: "Destination" },
+    {
+      accessorKey: "studentId",
+      header: "Student ID",
+    },
+    {
+      accessorKey: "studentName",
+      header: "Student Name",
+    },
+    {
+      accessorKey: "gender",
+      header: "Gender",
+    },
+    {
+      accessorKey: "course",
+      header: "Course",
+    },
+    {
+      accessorKey: "branch",
+      header: "Branch",
+    },
+    {
+      accessorKey: "passType",
+      header: "Pass Type",
+    },
+    {
+      accessorKey: "reason",
+      header: "Reason",
+    },
+    {
+      accessorKey: "destination",
+      header: "Destination",
+    },
     {
       id: "checkOutTime",
       header: "Check-Out Time",
-      cell: ({ row }) => row.original.checkOutTime ? formatTimeLocal(row.original.checkOutTime) : "-",
+      cell: ({ row }) =>
+        row.original.checkOutTime ? formatTimeLocal(row.original.checkOutTime) : "-",
     },
     {
       id: "checkInTime",
       header: "Check-In Time",
-      cell: ({ row }) => row.original.checkInTime ? formatTimeLocal(row.original.checkInTime) : "-",
+      cell: ({ row }) =>
+        row.original.checkInTime ? formatTimeLocal(row.original.checkInTime) : "-",
     },
   ];
 
@@ -501,6 +578,7 @@ const RequestLeave = () => {
           </CardContent>
         </Card>
 
+
         {/* Pass History Modal */}
         <Dialog open={showHistory} onOpenChange={setShowHistory}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -539,7 +617,7 @@ const RequestLeave = () => {
                   })));
                   const wb = XLSX.utils.book_new();
                   XLSX.utils.book_append_sheet(wb, ws, "GatePassHistory");
-                  XLSX.writeFile(wb, `GatePassHistory_${selectedHistoryDate.toISOString().slice(0,10)}.xlsx`);
+                  XLSX.writeFile(wb, `GatePassHistory_${getUTCDateOnly(selectedHistoryDate)}.xlsx`);
                 }}
                 className="ml-auto"
                 size="sm"
@@ -548,7 +626,7 @@ const RequestLeave = () => {
               </Button>
             </div>
             <DataTable
-              columns={columns.filter(col => col.id !== "actions")}
+              columns={columns.filter(col => col.id !== "actions" && col.id !== "download")}
               data={historyPasses}
               searchColumn="studentName"
               searchPlaceholder="Search by student name..."
@@ -563,6 +641,7 @@ const RequestLeave = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
 
         {/* Leave Request Details Dialog */}
         <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
@@ -620,12 +699,12 @@ const RequestLeave = () => {
                     : detailsRequest?.passType?.toUpperCase() === "DAYS"
                       ? (
                         <>
-                          {formatDateDisplayLocal(detailsRequest?.leaveDate)} {formatTimeLocal(detailsRequest?.leaveDate)} - {formatDateDisplayLocal(detailsRequest?.returnDate)} {formatTimeLocal(detailsRequest?.returnDate)}
+                          {formatDateLocal(detailsRequest?.leaveDate)} {formatTimeLocal(detailsRequest?.leaveDate)} - {formatDateLocal(detailsRequest?.returnDate)} {formatTimeLocal(detailsRequest?.returnDate)}
                         </>
                       )
                       : (
                         <>
-                          {formatDateDisplayLocal(detailsRequest?.leaveDate)} - {formatDateDisplayLocal(detailsRequest?.returnDate)}
+                          {formatDateLocal(detailsRequest?.leaveDate)} - {formatDateLocal(detailsRequest?.returnDate)}
                         </>
                       )
                   }
@@ -633,7 +712,7 @@ const RequestLeave = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium">Pass Generated</p>
-                <p className="text-sm text-gray-700">{formatDateDisplayLocal(detailsRequest?.createdAt)}</p>
+                <p className="text-sm text-gray-700">{formatDateLocal(detailsRequest?.createdAt)}</p>
               </div>
               <div className="md:col-span-2 space-y-1">
                 <p className="text-sm font-medium">Reason for Leave</p>
@@ -641,10 +720,13 @@ const RequestLeave = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>
+                Close
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
 
         {/* Edit Pass Period Modal */}
         <EditPassPeriodModal
@@ -653,69 +735,9 @@ const RequestLeave = () => {
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleEditPassPeriod}
         />
-
-        {/* Check-In/Out Modal */}
-        <Dialog open={showCheckInOut} onOpenChange={setShowCheckInOut}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>View Check-In/Out</DialogTitle>
-              <DialogDescription>
-                Date-wise filtered records of all student check-in/check-out for the selected day.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex items-center gap-2 mb-4">
-              <label className="font-medium">Select Date:</label>
-              <DatePicker
-                selected={checkInOutDate}
-                onChange={date => date && setCheckInOutDate(date)}
-                maxDate={new Date()}
-                dateFormat="yyyy-MM-dd"
-                className="input"
-                placeholderText="Pick a date"
-                showPopperArrow={false}
-                isClearable={false}
-              />
-              <Button
-                onClick={() => {
-                  const ws = XLSX.utils.json_to_sheet(checkInOutData.map(row => ({
-                    "Student ID": row.studentId,
-                    "Student Name": row.studentName,
-                    "Gender": row.gender,
-                    "Course": row.course,
-                    "Branch": row.branch,
-                    "Pass Type": row.passType,
-                    "Reason": row.reason,
-                    "Destination": row.destination,
-                    "Check Out Time": row.checkOutTime ? formatTimeLocal(row.checkOutTime) : "-",
-                    "Check In Time": row.checkInTime ? formatTimeLocal(row.checkInTime) : "-",
-                  })));
-                  const wb = XLSX.utils.book_new();
-                  XLSX.utils.book_append_sheet(wb, ws, "CheckInOut");
-                  XLSX.writeFile(wb, `CheckInOut_${checkInOutDate.toISOString().slice(0,10)}.xlsx`);
-                }}
-                className="ml-auto"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-1" /> Download Excel
-              </Button>
-            </div>
-            <DataTable
-              columns={checkInOutColumns}
-              data={checkInOutData}
-              searchColumn="studentName"
-              searchPlaceholder="Search by student name..."
-              isLoading={checkInOutLoading}
-              noDataMessage="No check-in/check-out records found for this date."
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCheckInOut(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </Layout2>
   );
 };
 
 export default RequestLeave;
-
