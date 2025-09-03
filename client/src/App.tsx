@@ -1,7 +1,6 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import PageTracker from "@/module/HostelDashboard/client/src/components/PageTracker";
 
 // Core pages
 import Home from "@/pages/Home";
@@ -9,6 +8,7 @@ import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
 // Module apps
+// import Indexi from "@/module/HostelDashboard/client/src/Indexi";
 import HostelStudentApp from "@/module/HostelStudentPortal/client/src/HostelStudentApp";
 import SecurityDashboardApp from "@/module/SecurityDashboard/client/src/SecurityDashboardApp";
 
@@ -18,13 +18,13 @@ import ChangePasswordA from "@/module/HostelDashboard/client/src/pages/ChangePas
 import AddCourse from "@/module/HostelDashboard/client/src/pages/courses/AddCourse";
 import ManageCourses from "@/module/HostelDashboard/client/src/pages/courses/ManageCourses";
 import AddRoom from "@/module/HostelDashboard/client/src/pages/rooms/AddRoom";
+import ManageRooms from "@/module/HostelDashboard/client/src/pages/rooms/ManageRooms";
 import AddStudent from "@/module/HostelDashboard/client/src/pages/students/AddStudent";
 import ManageStudents from "@/module/HostelDashboard/client/src/pages/students/ManageStudents";
 import TakeAttendance from "@/module/HostelDashboard/client/src/pages/TakeAttendance";
 import RequestLeave from "@/module/HostelDashboard/client/src/pages/RequestLeave";
 import ComplaintBox from "@/module/HostelDashboard/client/src/pages/ComplaintBox";
-// <<<<<<< PURANA IMPORT HATA DIYA GAYA
-import UserActivityLogs from "@/module/HostelDashboard/client/src/pages/UserActivityLogs"; // <<<<<<< NAYA IMPORT ADD KIYA GAYA
+import UserAccessLogs from "@/module/HostelDashboard/client/src/pages/UserAccessLogs";
 import "@/module/HostelDashboard/client/src/index.css";
 
 // Register Student
@@ -62,49 +62,45 @@ import "@/index.css";
 
 function Router() {
   return (
-    <> 
-      <PageTracker /> 
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/login" component={Login} />
-        <Route path="/master/dashboard" component={DashboardB} />
-        <Route path="/master/change-password" component={ChangePasswordA} />
-        <Route path="/courses/add" component={AddCourse} />
-        <Route path="/courses/manage" component={ManageCourses} />
-        <Route path="/rooms/add" component={AddRoom} />
-        <Route path="/rooms/manage" component={HostelRoomManagement} />
-        <Route path="/students/add" component={Index} />
-        <Route path="/students/manage" component={ManageStudents} />
-        <Route path="/take-attendance" component={TakeAttendance} />
-        <Route path="/request-leave" component={RequestLeave} />
-        <Route path="/complaint-box" component={ComplaintBox} />
-        
-        {/* <<<<<<< PURANA ROUTE HATA KAR NAYA ROUTE ADD KIYA GAYA */}
-        <Route path="/activity-logs" component={UserActivityLogs} />
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/master/dashboard" component={DashboardB} />
+      <Route path="/master/change-password" component={ChangePasswordA} />
+      <Route path="/courses/add" component={AddCourse} />
+      <Route path="/courses/manage" component={ManageCourses} />
+      <Route path="/rooms/add" component={AddRoom} />
+      <Route path="/rooms/manage" component={HostelRoomManagement} />
+      <Route path="/students/add" component={Index} />
+      <Route path="/students/manage" component={ManageStudents} />
+      <Route path="/take-attendance" component={TakeAttendance} />
+      <Route path="/request-leave" component={RequestLeave} />
+      <Route path="/complaint-box" component={ComplaintBox} />
+      <Route path="/user-access-logs" component={UserAccessLogs} />
 
-        <Route path="/student/dashboard" component={Dashboard} />
-        <Route path="/student/request-leave" component={GatePassForm} />
-        <Route path="/leave-status" component={LeaveStatus} />
-        <Route path="/complaints" component={ComplaintBoxS} />
-        <Route path="/anti-ragging" component={AntiRagging} />
-        <Route path="/student/change-password" component={ChangePassword} />
+      <Route path="/student/dashboard" component={Dashboard} />
+      <Route path="/student/request-leave" component={GatePassForm} />
+      <Route path="/leave-status" component={LeaveStatus} />
+      <Route path="/complaints" component={ComplaintBoxS} />
+      <Route path="/anti-ragging" component={AntiRagging} />
+      <Route path="/student/change-password" component={ChangePassword} />
 
-        <Route path="/security/dashboard" component={SecurityDashboard} />
+      <Route path="/security/dashboard" component={SecurityDashboard} />
 
-        <Route path="/student/:rest*" component={HostelStudentApp} />
-        <Route path="/security/:rest*" component={SecurityDashboardApp} />
+      {/* <Route path="/dashboard/:rest*" component={Indexi} /> */}
+      <Route path="/student/:rest*" component={HostelStudentApp} />
+      <Route path="/security/:rest*" component={SecurityDashboardApp} />
 
-        <Route path="/admin-complaint" component={AdminComplaintBox} />
-        <Route path="/medical-history" component={AdminMedicalHistory} />
-        <Route path="/emergency-report" component={AdminEmergencyReport} />
+      <Route path="/admin-complaint" component={AdminComplaintBox} />
+      <Route path="/medical-history" component={AdminMedicalHistory} />
+      <Route path="/emergency-report" component={AdminEmergencyReport} />
 
-        <Route path="/superadmin/admin-complaints" component={SuperAdminAdminComplaints} />
-        <Route path="/superadmin/emergency-reports" component={SuperAdminEmergencyReports} />
-        <Route path="/superadmin/medical-history" component={SuperAdminMedicalHistory} />
+      <Route path="/superadmin/admin-complaints" component={SuperAdminAdminComplaints} />
+      <Route path="/superadmin/emergency-reports" component={SuperAdminEmergencyReports} />
+      <Route path="/superadmin/medical-history" component={SuperAdminMedicalHistory} />
 
-        <Route component={NotFound} />
-      </Switch>
-    </>
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
