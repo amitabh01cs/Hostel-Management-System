@@ -1,7 +1,7 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import PageTracker from "@/module/HostelDashboard/client/src/components/PageTracker"; // <<<<<<< 1. YEH LINE ADD KAREIN
+import PageTracker from "@/module/HostelDashboard/client/src/components/PageTracker";
 
 // Core pages
 import Home from "@/pages/Home";
@@ -9,7 +9,6 @@ import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
 // Module apps
-// import Indexi from "@/module/HostelDashboard/client/src/Indexi";
 import HostelStudentApp from "@/module/HostelStudentPortal/client/src/HostelStudentApp";
 import SecurityDashboardApp from "@/module/SecurityDashboard/client/src/SecurityDashboardApp";
 
@@ -19,13 +18,13 @@ import ChangePasswordA from "@/module/HostelDashboard/client/src/pages/ChangePas
 import AddCourse from "@/module/HostelDashboard/client/src/pages/courses/AddCourse";
 import ManageCourses from "@/module/HostelDashboard/client/src/pages/courses/ManageCourses";
 import AddRoom from "@/module/HostelDashboard/client/src/pages/rooms/AddRoom";
-import ManageRooms from "@/module/HostelDashboard/client/src/pages/rooms/ManageRooms";
 import AddStudent from "@/module/HostelDashboard/client/src/pages/students/AddStudent";
 import ManageStudents from "@/module/HostelDashboard/client/src/pages/students/ManageStudents";
 import TakeAttendance from "@/module/HostelDashboard/client/src/pages/TakeAttendance";
 import RequestLeave from "@/module/HostelDashboard/client/src/pages/RequestLeave";
 import ComplaintBox from "@/module/HostelDashboard/client/src/pages/ComplaintBox";
-import UserAccessLogs from "@/module/HostelDashboard/client/src/pages/UserAccessLogs";
+// <<<<<<< PURANA IMPORT HATA DIYA GAYA
+import UserActivityLogs from "@/module/HostelDashboard/client/src/pages/UserActivityLogs"; // <<<<<<< NAYA IMPORT ADD KIYA GAYA
 import "@/module/HostelDashboard/client/src/index.css";
 
 // Register Student
@@ -63,8 +62,8 @@ import "@/index.css";
 
 function Router() {
   return (
-    <> {/* Ek Fragment add kiya hai taaki 2 components rakh sakein */}
-      <PageTracker /> {/* <<<<<<< 2. YEH LINE ADD KAREIN */}
+    <> 
+      <PageTracker /> 
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/login" component={Login} />
@@ -79,7 +78,9 @@ function Router() {
         <Route path="/take-attendance" component={TakeAttendance} />
         <Route path="/request-leave" component={RequestLeave} />
         <Route path="/complaint-box" component={ComplaintBox} />
-        <Route path="/user-access-logs" component={UserAccessLogs} />
+        
+        {/* <<<<<<< PURANA ROUTE HATA KAR NAYA ROUTE ADD KIYA GAYA */}
+        <Route path="/activity-logs" component={UserActivityLogs} />
 
         <Route path="/student/dashboard" component={Dashboard} />
         <Route path="/student/request-leave" component={GatePassForm} />
@@ -90,7 +91,6 @@ function Router() {
 
         <Route path="/security/dashboard" component={SecurityDashboard} />
 
-        {/* <Route path="/dashboard/:rest*" component={Indexi} /> */}
         <Route path="/student/:rest*" component={HostelStudentApp} />
         <Route path="/security/:rest*" component={SecurityDashboardApp} />
 
