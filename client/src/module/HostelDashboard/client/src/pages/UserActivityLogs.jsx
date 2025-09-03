@@ -26,22 +26,12 @@ import { useToast } from "@/hooks/use-toast";
 
 const API_BASE_URL = "https://hostel-backend-module-production-iist.up.railway.app";
 
-// YE POORA CODE COPY-PASTE KAREIN
-type ActivityLog = {
-  id: number;
-  user_id: string;
-  user_email: string;
-  user_type: string;
-  ip_address: string;
-  action: string;
-  page_url: string;
-  action_time: string;
-};
+// <<<<<<< WOH TYPE WALA CODE BLOCK YAHAN SE HATA DIYA GAYA HAI
 
 const UserActivityLogs = () => {
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [activityLogs, setActivityLogs] = useState([]); // Type ki zaroorat nahi hai
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchLogs = () => {
@@ -92,13 +82,13 @@ const UserActivityLogs = () => {
     {
       accessorKey: "action",
       header: "Action",
-      cell: ({ row }: any) => <Badge variant="outline">{row.getValue("action")}</Badge>,
+      cell: ({ row }) => <Badge variant="outline">{row.getValue("action")}</Badge>,
     },
     { accessorKey: "page_url", header: "Page URL" },
     {
       accessorKey: "action_time",
       header: "Time",
-      cell: ({ row }: any) => formatDateTime(row.getValue("action_time")),
+      cell: ({ row }) => formatDateTime(row.getValue("action_time")),
     },
     { accessorKey: "ip_address", header: "IP Address" },
   ];
