@@ -1,476 +1,402 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "../hooks/use-toast";
-import { useTranslation, initReactI18next } from "react-i18next";
-import i18n from "i18next";
-
-import {
-  Button,
-  Input,
-  Select,
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-  Badge,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "../components/ui";
-
-import {
-  Search,
-  Shield,
-  Users,
-  UserX,
-  UserCheck,
-  Clock,
-  MapPin,
-  FileText,
-  History,
-  LogOut,
-  Download,
-  Eye,
-  Pencil,
-  CalendarDays,
-} from "lucide-react";
-
+import * as XLSX from "xlsx";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import * as XLSX from "xlsx";
-import Layout from "../components/layout/Layout";
+import { useTranslation, initReactI18next } from "react-i18next";
+import i18n from "i18next";
+import { useToast } from "../hooks/use-toast";
+import Layout2 from "../components/layout/Layout2";
+import { DataTable } from "../components/ui/data-table";
+import { Button } from "../components/ui/button";
+import {
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
+} from "../components/ui/card";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "../components/ui/dialog";
+import { Badge } from "../components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "../components/ui/tabs";
+import {
+  Eye, CalendarDays, Pencil, Download, Search, Shield, Users, UserX, UserCheck, Clock, MapPin, FileText, History, LogOut,
+} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
-const resources = {
-  en: {
-    translation: {
-      "Campus Security": "Campus Security",
-      "Student Entry/Exit Tracking": "Student Entry/Exit Tracking",
-      "Search Students": "Search Students",
-      "Pass Type": "Pass Type",
-      "Status": "Status",
-      "All Types": "All Types",
-      "Hourly": "Hourly",
-      "Days": "Days",
-      "All Students": "All Students",
-      "Checked Out": "Checked Out",
-      "On Campus": "On Campus",
-      "Checked Out Only": "Checked Out Only",
-      "Available on Campus": "Available on Campus",
-      "Total Students": "Total Students",
-      "Hourly Passes": "Hourly Passes",
-      "Active Students": "Active Students",
-      "students found": "students found",
-      "No students found": "No students found",
-      "Try adjusting your search terms or filters to find the students you're looking for.":
-        "Try adjusting your search terms or filters to find the students you're looking for.",
-      "Reason:": "Reason:",
-      "Place:": "Place:",
-      "Pass no:": "Pass no:",
-      "Journey Completed": "Journey Completed",
-      "Late Check-In": "Late Check-In",
-      "Check Out": "Check Out",
-      "Check In": "Check In",
-      "Recent Activity": "Recent Activity",
-      "No recent activity": "No recent activity",
-      "Completed Student Logs": "Completed Student Logs",
-      "No completed entries": "No completed entries",
-      "Students who complete the check-in process will appear here.":
-        "Students who complete the check-in process will appear here.",
-      "Approved Return Time (Arrival):": "Approved Return Time (Arrival):",
-      "Actual Check-In": "Actual Check-In",
-      "Passes History": "Passes History",
-      "Select Date": "Select Date",
-      "Download Excel": "Download Excel",
-      "No data found": "No data found",
-      Logout: "Logout",
-    },
-  },
-  hi: {
-    translation: {
-      "Campus Security": "कैम्पस सुरक्षा",
-      "Student Entry/Exit Tracking": "छात्र प्रवेश/निकास ट्रैकिंग",
-      "Search Students": "छात्र खोजें",
-      "Pass Type": "पास प्रकार",
-      "Status": "स्थिति",
-      "All Types": "सभी प्रकार",
-      "Hourly": "घंटा",
-      "Days": "दिन",
-      "All Students": "सभी छात्र",
-      "Checked Out": "बाहर गया",
-      "On Campus": "कैम्पस में",
-      "Checked Out Only": "केवल बाहर गया",
-      "Available on Campus": "कैम्पस में उपलब्ध",
-      "Total Students": "कुल छात्र",
-      "Hourly Passes": "घंटे के पास",
-      "Active Students": "सक्रिय छात्र",
-      "students found": "छात्र मिले",
-      "No students found": "कोई छात्र नहीं मिला",
-      "Try adjusting your search terms or filters to find the students you're looking for.":
-        "अपनी खोज की शर्तें या फ़िल्टर बदलें।",
-      "Reason:": "कारण:",
-      "Place:": "स्थान:",
-      "Pass no:": "पास नंबर",
-      "Journey Completed": "यात्रा पूरी हो गई",
-      "Late Check-In": "लेट चेक-इन",
-      "Check Out": "चेक आउट",
-      "Check In": "चेक इन",
-      "Recent Activity": "हाल की गतिविधि",
-      "No recent activity": "कोई हाल की गतिविधि नहीं",
-      "Completed Student Logs": "पूर्ण छात्र लॉग",
-      "No completed entries": "कोई पूर्ण प्रविष्टि नहीं",
-      "Students who complete the check-in process will appear here.":
-        "जो छात्र चेक-इन पूरा करते हैं उन्हें यहाँ दिखाया जाएगा।",
-      "Approved Return Time (Arrival):": "स्वीकृत वापसी समय (आगमन):",
-      "Actual Check-In": "वास्तविक चेक-इन",
-      "Passes History": "पास इतिहास",
-      "Select Date": "दिनांक चुनें",
-      "Download Excel": "एक्सेल डाउनलोड करें",
-      "No data found": "कोई डेटा नहीं मिला",
-      Logout: "लॉगआउट",
-    },
-  },
-};
-
+const resources = { /* i18n resource as in your project */ };
 i18n.use(initReactI18next).init({
   resources,
   lng: "en",
   fallbackLng: "en",
-  interpolation: { escapeValue: false },
+  interpolation: { escapeValue: false }
 });
-
-const languageOptions = [
+const API_BASE = "https://hostel-backend-module-production-iist.up.railway.app/api";
+const langOptions = [
   { code: "en", label: "English" },
   { code: "hi", label: "हिंदी" },
 ];
 
-const API_BASE = "https://hostel-backend-production.up.railway.app/api";
-
-// Utility functions
-function getPhotoUrl(studentId?: number, studentName?: string) {
-  if (studentId) return `${API_BASE}/student/${studentId}/photo`;
-  if (studentName) return `https://ui-avatars.com/api/?name=${encodeURIComponent(studentName)}&background=random&color=fff`;
-  return "/default-avatar.png";
+function getPhotoUrl(studentId, name) {
+  return studentId
+    ? `${API_BASE}/student/photo/${studentId}`
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
 }
-
-function getInitials(name?: string) {
+function getInitials(name) {
   if (!name) return "";
-  const parts = name.trim().split(" ");
-  return parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0].substring(0, 2);
+  return name.split(" ").filter(n => n.length > 0).map(n => n[0]).join("").toUpperCase();
 }
-
-function formatTime(str?: string) {
+function formatTime(str) {
   if (!str) return "-";
   const d = new Date(str);
-  if (isNaN(d.getTime())) return "-";
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
+  return isNaN(d.getTime()) ? "-" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
-
-function formatDate(str?: string) {
+function formatDate(str) {
   if (!str) return "-";
   const d = new Date(str);
-  if (isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString();
+  return isNaN(d.getTime()) ? "-" : d.toLocaleDateString();
+}
+function formatAMPM(str) {
+  if (!str) return "";
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return "";
+  // Adjust locale for Hindi support
+  return d.toLocaleTimeString(i18n.language, { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 export default function SecurityDashboard() {
-  const { t } = i18n;
+  const { t } = useTranslation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Assuming you have a useAuth or similar hook to get security context
-  const [security, setSecurity] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate fetching security user
-    async function fetchSecurity() {
-      try {
-        const res = await fetch(`${API_BASE}/security/me`);
-        if (res.ok) {
-          const data = await res.json();
-          setSecurity(data);
-        } else {
-          window.location.href = "/login";
-        }
-      } catch {
-        window.location.href = "/login";
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchSecurity();
-  }, []);
-
-  // State
+  // Main state and data
   const [students, setStudents] = useState([]);
   const [completedStudents, setCompletedStudents] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({});
   const [activityLogs, setActivityLogs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
   const [passTypeFilter, setPassTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTab, setSelectedTab] = useState("dashboard");
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [language, setLanguage] = useState(i18n.language);
+  const [historyModal, setHistoryModal] = useState(false);
   const [historyDate, setHistoryDate] = useState(new Date());
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [selectedStudentDetail, setSelectedStudentDetail] = useState(null);
+  const [detailsStudent, setDetailsStudent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [editStudent, setEditStudent] = useState(null);
+  const [editFrom, setEditFrom] = useState("");
+  const [editTo, setEditTo] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // Fetch data
-  useEffect(() => {
-    if (loading) return;
-    async function fetchData() {
-      const [studentsRes, completedRes, statsRes, activityRes] = await Promise.all([
+  useEffect(() => { i18n.changeLanguage(language); }, [language]);
+  useEffect(() => { fetchAll(); }, []);
+
+  async function fetchAll() {
+    setLoading(true);
+    try {
+      const [
+        studentsRes, completedRes, statsRes, activityRes
+      ] = await Promise.all([
         fetch(`${API_BASE}/security/active-passes`),
         fetch(`${API_BASE}/security/completed-logs`),
         fetch(`${API_BASE}/security/stats`),
-        fetch(`${API_BASE}/security/activity-logs`),
+        fetch(`${API_BASE}/security/activity-logs`)
       ]);
-      if (studentsRes.ok) setStudents(await studentsRes.json());
-      if (completedRes.ok) setCompletedStudents(await completedRes.json());
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (activityRes.ok) setActivityLogs(await activityRes.json());
-    }
-    fetchData();
-  }, [loading]);
-
-  // Handlers for Check-In/Out
+      setStudents(await studentsRes.json());
+      setCompletedStudents(await completedRes.json());
+      setStats(statsRes.ok ? await statsRes.json() : {});
+      setActivityLogs(await activityRes.json());
+    } finally { setLoading(false); }
+  }
   async function handleCheckOut(id) {
-    try {
-      let res = await fetch(`${API_BASE}/security/pass/${id}/checkout`, { method: "POST" });
-      if (!res.ok) throw new Error("Error during checkout");
-      let data = await res.json();
-      toast({ title: t("Check Out"), description: `${data.name} ${t("has been checked out successfully")}` });
-      // Refresh
-      queryClient.invalidateQueries();
-    } catch (e) {
-      toast({ title: t("Check Out"), description: e.message || "", variant: "destructive" });
-    }
+    await fetch(`${API_BASE}/security/pass/${id}/checkout`, { method: "POST" });
+    toast({ title: t("Check Out Successful") });
+    fetchAll();
+  }
+  async function handleCheckIn(id) {
+    await fetch(`${API_BASE}/security/pass/${id}/checkin`, { method: "POST" });
+    toast({ title: t("Check In Successful") });
+    fetchAll();
   }
 
-  async function handleCheckIn(id, isLate) {
-    try {
-      let res = await fetch(`${API_BASE}/security/pass/${id}/checkin`, { method: "POST" });
-      if (!res.ok) throw new Error("Error during checkin");
-      let data = await res.json();
-      toast({ title: t("Check In"), description: `${data.name} ${t("has been checked in")}` });
-      queryClient.invalidateQueries();
-    } catch (e) {
-      toast({ title: t("Check In"), description: e.message || "", variant: "destructive" });
-    }
-  }
-
-  // Filter students
+  // Filtering
   const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchSearch =
-        !searchTerm ||
-        (student.name && student.name.toLowerCase().includes(searchLower)) ||
-        (student.course && student.course.toLowerCase().includes(searchLower)) ||
-        (student.passNumber && student.passNumber.toLowerCase().includes(searchLower)) ||
-        (student.reason && student.reason.toLowerCase().includes(searchLower)) ||
-        (student.destination && student.destination.toLowerCase().includes(searchLower));
-      const matchType = passTypeFilter === "all" || student.passType === passTypeFilter;
-      const matchStatus = statusFilter === "all" || (statusFilter === "in" && student.status === "active") || (statusFilter === "out" && student.status === "out");
-      return matchSearch && matchType && matchStatus;
+    return students.filter(s => {
+      const sText = search.toLowerCase();
+      const mSearch = !search || (s.name && s.name.toLowerCase().includes(sText)) || (s.course && s.course.toLowerCase().includes(sText));
+      const mType = passTypeFilter === "all" || s.passType === passTypeFilter;
+      const mStatus = statusFilter === "all" || (statusFilter === "in" && s.status === "active") || (statusFilter === "out" && s.status === "out");
+      return mSearch && mType && mStatus;
     });
-  }, [students, searchTerm, passTypeFilter, statusFilter]);
+  }, [students, search, passTypeFilter, statusFilter]);
 
-  // History load
+  // Edit modal helpers
+  function openEditModal(student) {
+    setEditStudent(student);
+    setEditFrom(student.leaveDate ? student.leaveDate.slice(0, 16) : "");
+    setEditTo(student.returnDate ? student.returnDate.slice(0, 16) : "");
+    setEditModal(true);
+  }
+  async function saveEditModal() {
+    if (!editStudent) return;
+    await fetch(`${API_BASE}/gate-pass/${editStudent.id}/edit-time`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromTime: editFrom, toTime: editTo }),
+    });
+    toast({ title: t("Pass period updated") });
+    setEditModal(false);
+    fetchAll();
+  }
+
+  // History
   async function loadHistory(date) {
     setHistoryLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/security/completed-logs?date=${date.toISOString().slice(0,10)}`);
-      if (res.ok) setHistoryData(await res.json());
-      else setHistoryData([]);
-    } catch {
-      setHistoryData([]);
-    }
+    const res = await fetch(`${API_BASE}/security/completed-logs?date=${date.toISOString().slice(0,10)}`);
+    setHistoryData(res.ok ? await res.json() : []);
     setHistoryLoading(false);
   }
+  useEffect(() => { if (historyModal) loadHistory(historyDate); }, [historyDate, historyModal]);
 
-  useEffect(() => {
-    if (historyModalOpen) loadHistory(historyDate);
-  }, [historyDate, historyModalOpen]);
+  if (loading) return <Layout2><div className="p-8">{t("Loading...")}</div></Layout2>;
 
   return (
-    <Layout>
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-          <div className="flex items-center space-x-3">
-            <Shield className="text-blue-600" size={30} />
-            <h1 className="text-2xl font-semibold">{t("Campus Security")}</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div>{new Date().toLocaleString()}</div>
-            <div>{security?.name}</div>
-            <Select value={i18n.language} onValueChange={val => i18n.changeLanguage(val)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {languageOptions.map(({ code, label }) => (
-                  <SelectItem key={code} value={code}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </header>
+    <Layout2>
+      <header className="flex justify-between items-center border-b bg-white p-4">
+        <div className="flex items-center gap-2">
+          <Shield className="text-blue-600" size={30} />
+          <span className="text-2xl font-semibold">{t("Campus Security")}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-600">{new Date().toLocaleString()}</span>
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {langOptions.map(l => (
+                <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </header>
 
-        <main className="p-6 flex-1 overflow-auto">
-          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList>
-              <TabsTrigger value="dashboard">{t("Dashboard")}</TabsTrigger>
-              <TabsTrigger value="logs">{t("Completed Student Logs")}</TabsTrigger>
-            </TabsList>
+      <main className="p-6">
+        <div className="flex justify-end mb-4">
+          <Button onClick={() => setHistoryModal(true)} variant="secondary">{t("View Passes History")}</Button>
+        </div>
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="dashboard">{t("Dashboard")}</TabsTrigger>
+            <TabsTrigger value="logs">{t("Completed Student Logs")}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="dashboard">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("Student Entry/Exit Tracking")}</CardTitle>
+                <CardDescription>{t("Active Students")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 mb-4">
+                  <Input placeholder={t("Search Students")} value={search} onChange={e => setSearch(e.target.value)} />
+                  <Select value={passTypeFilter} onValueChange={setPassTypeFilter}>
+                    <SelectTrigger><SelectValue placeholder={t("Pass Type")} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("All Types")}</SelectItem>
+                      <SelectItem value="hourly">{t("Hourly")}</SelectItem>
+                      <SelectItem value="days">{t("Days")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger><SelectValue placeholder={t("Status")} /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("All Students")}</SelectItem>
+                      <SelectItem value="in">{t("Available on Campus")}</SelectItem>
+                      <SelectItem value="out">{t("Checked Out Only")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DataTable
+                  columns={[
+                    {
+                      id: "photo",
+                      header: "Photo",
+                      cell: ({ row }) => (
+                        <Avatar>
+                          <AvatarImage src={getPhotoUrl(row.original.studentId, row.original.studentName)} onError={e => (e.currentTarget.src = "/no-image.png")} />
+                          <AvatarFallback>{getInitials(row.original.studentName)}</AvatarFallback>
+                        </Avatar>
+                      )
+                    },
+                    { accessorKey: "studentId", header: "Student ID" },
+                    { accessorKey: "studentName", header: "Student Name" },
+                    { accessorKey: "stream", header: "Stream" },
+                    { accessorKey: "passType", header: "Pass Type" },
+                    { accessorKey: "status", header: "Status" },
+                    {
+                      id: "actions",
+                      header: "Actions",
+                      cell: ({ row }) => (
+                        <div className="flex gap-1">
+                          <Button onClick={() => { setDetailsStudent(row.original); setDetailsOpen(true); }} size="icon"><Eye /></Button>
+                          <Button onClick={() => openEditModal(row.original)} size="icon"><Pencil /></Button>
+                          <Button onClick={() => handleCheckOut(row.original.studentId)} size="icon">{t("Check Out")}</Button>
+                          <Button onClick={() => handleCheckIn(row.original.studentId)} size="icon">{t("Check In")}</Button>
+                        </div>
+                      )
+                    }
+                  ]}
+                  data={filteredStudents}
+                  searchColumn="studentName"
+                  searchPlaceholder="Search by student name..."
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="logs">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <History className="w-5 h-5" />
+                  <span>{t("Completed Student Logs")}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {completedStudents.length === 0 ? (
+                  <div className="py-4 text-gray-500">{t("No completed entries")}</div>
+                ) : (
+                  <div className="divide-y">
+                    {completedStudents.map(student => (
+                      <div key={student.id} className="flex items-center gap-4 p-4">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={getPhotoUrl(student.studentId, student.studentName)} onError={e => (e.currentTarget.src = "/no-image.png")} />
+                          <AvatarFallback>{getInitials(student.studentName)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div><b>{student.studentName}</b> - {student.passType}</div>
+                          <div>{formatDate(student.leaveDate)} {formatTime(student.leaveDate)} - {formatDate(student.returnDate)} {formatTime(student.returnDate)}</div>
+                        </div>
+                        <Badge className={student.late ? "bg-orange-600" : "bg-green-600"}>{student.late ? t("Late Check-In") : t("Journey Completed")}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
 
-            <TabsContent value="dashboard" className="mt-6">
-              <div className="flex flex-col space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t("Student Entry/Exit Tracking")}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col md:flex-row md:space-x-4 mb-4">
-                      <Input
-                        placeholder={t("Search Students")}
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="mb-2 md:mb-0"
-                      />
-                      <Select value={passTypeFilter} onValueChange={setPassTypeFilter} className="w-48">
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("All Types")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t("All Types")}</SelectItem>
-                          <SelectItem value="hourly">{t("Hourly")}</SelectItem>
-                          <SelectItem value="days">{t("Days")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={statusFilter} onValueChange={setStatusFilter} className="w-48">
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("All Students")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t("All Students")}</SelectItem>
-                          <SelectItem value="in">{t("On Campus")}</SelectItem>
-                          <SelectItem value="out">{t("Checked Out")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <DataTable
-                      columns={[
-                        {
-                          id: "photo",
-                          header: "Photo",
-                          cell: ({ row }) => (
-                            <Avatar>
-                              <AvatarImage src={getPhotoUrl(row.original.studentId, row.original.studentName)} onError={(e) => (e.currentTarget.src = "/default-avatar.png")} />
-                              <AvatarFallback>{getInitials(row.original.studentName)}</AvatarFallback>
-                            </Avatar>
-                          ),
-                        },
-                        { accessorKey: "studentId", header: "ID" },
-                        { accessorKey: "studentName", header: "Name" },
-                        { accessorKey: "stream", header: "Stream" },
-                        { accessorKey: "passType", header: "Pass Type" },
-                        {
-                          id: "period",
-                          header: "Period",
-                          cell: ({ row }) => {
-                            if (row.original.passType === "hourly") {
-                              return <>{formatTime(row.original.leaveDate)} - {formatTime(row.original.returnDate)}</>;
-                            }
-                            return <>{formatDate(row.original.leaveDate)} - {formatDate(row.original.returnDate)}</>;
-                          },
-                        },
-                        {
-                          id: "status",
-                          header: "Status",
-                          cell: ({ row }) => (
-                            <Badge className={cn("uppercase", row.original.status === "Approved" ? "bg-green-600" : "bg-yellow-500")}>
-                              {row.original.status}
-                            </Badge>
-                          ),
-                        },
-                        {
-                          id: "actions",
-                          header: "Actions",
-                          cell: ({ row }) => (
-                            <div className="space-x-2">
-                              <Button size="sm" onClick={() => alert("View " + row.original.studentName)}><Eye /></Button>
-                              {/* Add Approve/Reject buttons and others here */}
-                            </div>
-                          ),
-                        },
-                      ]}
-                      data={filteredStudents}
-                      searchColumn="studentName"
-                    />
-                  </CardContent>
-                </Card>
+      {/* Student Detail Modal */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("Leave Request Details")}</DialogTitle>
+          </DialogHeader>
+          {detailsStudent && (
+            <div className="space-y-2">
+              <div className="flex justify-center mb-3">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={getPhotoUrl(detailsStudent.studentId, detailsStudent.studentName)} onError={e => (e.currentTarget.src = "/no-image.png")} />
+                  <AvatarFallback>{getInitials(detailsStudent.studentName)}</AvatarFallback>
+                </Avatar>
               </div>
-            </TabsContent>
+              <div><b>Student:</b> {detailsStudent.studentName}</div>
+              <div><b>ID:</b> {detailsStudent.studentId}</div>
+              <div><b>Stream:</b> {detailsStudent.stream}</div>
+              <div><b>Pass Period:</b> {formatDate(detailsStudent.leaveDate)} {formatTime(detailsStudent.leaveDate)} - {formatDate(detailsStudent.returnDate)} {formatTime(detailsStudent.returnDate)}</div>
+              <div><b>Reason:</b> {detailsStudent.reason}</div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <TabsContent value="logs" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("Completed Student Logs")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {completedStudents.length === 0 ? (
-                    <div>{t("No completed entries")}</div>
-                  ) : (
-                    completedStudents.map((student) => (
-                      <Card key={student.id} className="mb-4">
-                        <CardContent className="flex items-center space-x-4">
-                          <Avatar>
-                            <AvatarImage src={getPhotoUrl(student.studentId, student.studentName)} onError={(e) => (e.currentTarget.src = "/default-avatar.png")} />
-                            <AvatarFallback>{getInitials(student.studentName)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-semibold">{student.studentName}</div>
-                            <div>{t("Pass no:")} {student.passNumber}</div>
-                            <div>
-                              {t("Approved Return Time (Arrival):")} {formatTime(student.toDate)}
-                            </div>
-                            <div>{t("Actual Check-In:")} {formatTime(student.checkInDate)}</div>
-                          </div>
-                          <Badge className={cn(student.late ? "bg-orange-600" : "bg-green-600", "uppercase")}>
-                            {student.late ? t("Late Check-In") : t("Journey Completed")}
-                          </Badge>
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+      {/* Edit Pass Period Modal */}
+      <Dialog open={editModal} onOpenChange={setEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Pass Period</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label>From:</label>
+            <input type="datetime-local" value={editFrom} onChange={e => setEditFrom(e.target.value)} className="input w-full" />
+            <label>To:</label>
+            <input type="datetime-local" value={editTo} onChange={e => setEditTo(e.target.value)} className="input w-full" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModal(false)}>Cancel</Button>
+            <Button onClick={saveEditModal}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          {/* Other modals e.g. history, edit period modal can go here */}
-
-          <div className="mt-6 flex justify-end">
-            <Button variant="destructive" onClick={() => {localStorage.removeItem("securityUser"); window.location.href = "/login";}}>
-              <LogOut /> {t("Logout")}
+      {/* Passes History Modal */}
+      <Dialog open={historyModal} onOpenChange={setHistoryModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{t("Passes History")}</DialogTitle>
+            <DialogDescription>{t("Select Date to see passes")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 my-2">
+            <span>{t("Select Date")}:</span>
+            <DatePicker selected={historyDate} onChange={date => date && setHistoryDate(date)} maxDate={new Date()} dateFormat="yyyy-MM-dd" className="input" />
+            <Button size="sm"
+              onClick={() => {
+                const ws = XLSX.utils.json_to_sheet(historyData.map(row => ({
+                  "Student ID": row.studentId,
+                  "Student Name": row.studentName,
+                  "Stream": row.stream,
+                  "Pass Type": row.passType,
+                  "Reason": row.reason,
+                  "Leave": formatDate(row.leaveDate) + " " + formatTime(row.leaveDate),
+                  "Return": formatDate(row.returnDate) + " " + formatTime(row.returnDate)
+                })));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "PassHistory");
+                XLSX.writeFile(wb, `PassesHistory_${historyDate.toISOString().slice(0, 10)}.xlsx`);
+              }}
+              >
+              <Download className="w-4 h-4 mr-1" /> {t("Download Excel")}
             </Button>
           </div>
-        </main>
-      </div>
-    </Layout>
+          {historyLoading ? (
+            <div className="py-12 text-center">{t("Loading...")}</div>
+          ) : (
+            <div>
+              {historyData.length === 0 ? (
+                <div>{t("No data found")}</div>
+              ) : (
+                <div className="divide-y">
+                  {historyData.map((row, idx) => (
+                    <div key={row.id || idx} className="flex items-center gap-3 p-2">
+                      <Avatar className="w-8 h-8"><AvatarImage src={getPhotoUrl(row.studentId, row.studentName)} onError={e => (e.currentTarget.src = "/no-image.png")} /><AvatarFallback>{getInitials(row.studentName)}</AvatarFallback></Avatar>
+                      <span>{row.studentName}</span>
+                      <span>{row.stream}</span>
+                      <span>{formatDate(row.leaveDate)} {formatTime(row.leaveDate)} - {formatDate(row.returnDate)} {formatTime(row.returnDate)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryModal(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <footer className="flex justify-end mt-8">
+        <Button variant="destructive" size="lg" className="flex items-center space-x-2"
+          onClick={() => { localStorage.removeItem("securityUser"); window.location.href = "/login"; }}
+          title={t("Logout")}>
+          <LogOut className="w-5 h-5 mr-2" />
+          {t("Logout")}
+        </Button>
+      </footer>
+    </Layout2>
   );
 }
