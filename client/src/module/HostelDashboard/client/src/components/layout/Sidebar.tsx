@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import headerImage from "@assets/header.png";
 import { cn } from "@/lib/utils";
+import { logActivity } from '@/lib/logger';
 
 const SidebarLink = ({ href, label, icon, isActive, onClick }) => (
   <Link href={href} className={cn("sidebar-item", isActive && "active")} onClick={onClick}>
@@ -57,7 +58,6 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
   const isActive = (path) => location === path;
   const isChildActive = (paths) => paths.some((path) => location === path);
 
-  // Sidebar content
   const sidebarContent = (onLinkClick) => (
     <>
       <div className="p-4 border-b border-gray-200">
@@ -71,7 +71,6 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
           isActive={isActive("/master/dashboard")}
           onClick={onLinkClick}
         />
-        {/* SuperAdmin ONLY */}
         {isSuperAdmin && (
           <>
             <SidebarDropdown
@@ -95,7 +94,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Add Room
               </Link>
               <Link href="/rooms/manage" className={cn("sidebar-dropdown-item", isActive("/rooms/manage") && "active")} onClick={onLinkClick}>
-                Manage Rooms   
+                Manage Rooms    
               </Link>
             </SidebarDropdown>
             <SidebarDropdown
@@ -110,13 +109,16 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Manage Students
               </Link>
             </SidebarDropdown>
+
+            {/* <<<<<<< SUPER ADMIN KE LIYE LINK UPDATE KIYA GAYA */}
             <SidebarLink
-              href="/user-access-logs"
-              label="User Access Logs"
+              href="/activity-logs"
+              label="Activity Logs"
               icon={<History />}
-              isActive={isActive("/user-access-logs")}
+              isActive={isActive("/activity-logs")}
               onClick={onLinkClick}
             />
+
             <div className="mt-4 mb-2 text-xs text-gray-400 font-semibold px-2">Super Admin</div>
             <SidebarLink
               href="/hostels/add"
@@ -169,7 +171,6 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
             />
           </>
         )}
-        {/* COMMON: Not SuperAdmin */}
         {!isSuperAdmin && (
           <>
             <SidebarDropdown
@@ -181,7 +182,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Add Room
               </Link>
               <Link href="/rooms/manage" className={cn("sidebar-dropdown-item", isActive("/rooms/manage") && "active")} onClick={onLinkClick}>
-                Manage Rooms   
+                Manage Rooms    
               </Link>
             </SidebarDropdown>
             <SidebarDropdown
@@ -196,7 +197,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Manage Students
               </Link>
             </SidebarDropdown>
-            <SidebarLink   
+            <SidebarLink    
               href="/take-attendance"
               label="Take Attendance"
               icon={<ClipboardCheck />}
@@ -238,11 +239,13 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
               isActive={isActive("/emergency-report")}
               onClick={onLinkClick}
             />
+            
+            {/* <<<<<<< NORMAL ADMIN KE LIYE LINK UPDATE KIYA GAYA */}
             <SidebarLink
-              href="/user-access-logs"
-              label="User Access Logs"
+              href="/activity-logs"
+              label="Activity Logs"
               icon={<History />}
-              isActive={isActive("/user-access-logs")}
+              isActive={isActive("/activity-logs")}
               onClick={onLinkClick}
             />
           </>
@@ -253,6 +256,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
           className="sidebar-item text-red-600 hover:bg-red-50 hover:text-red-700"
           onClick={() => {
             if (window.confirm("Are you sure you want to log out?")) {
+              logActivity('LOGOUT');
               localStorage.clear();
               window.location.href = "/";
             }
@@ -267,11 +271,9 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside className="w-64 border-r border-gray-200 bg-sidebar fixed inset-y-0 left-0 z-20 hidden md:flex flex-col">
         {sidebarContent()}
       </aside>
-      {/* Mobile Sidebar */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar shadow-lg border-r transform transition-transform duration-200 ease-in-out md:hidden flex flex-col",
@@ -283,7 +285,6 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
         </button>
         {sidebarContent(() => setMobileOpen(false))}
       </aside>
-      {/* Overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-30 z-30 md:hidden"
