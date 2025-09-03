@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import headerImage from "@assets/header.png";
 import { cn } from "@/lib/utils";
-import { logActivity } from '@/lib/logger';
+
+// <<<<<<< Logger ka import hata diya gaya hai
 
 const SidebarLink = ({ href, label, icon, isActive, onClick }) => (
   <Link href={href} className={cn("sidebar-item", isActive && "active")} onClick={onClick}>
@@ -94,7 +95,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Add Room
               </Link>
               <Link href="/rooms/manage" className={cn("sidebar-dropdown-item", isActive("/rooms/manage") && "active")} onClick={onLinkClick}>
-                Manage Rooms    
+                Manage Rooms
               </Link>
             </SidebarDropdown>
             <SidebarDropdown
@@ -110,15 +111,8 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
               </Link>
             </SidebarDropdown>
 
-            {/* <<<<<<< SUPER ADMIN KE LIYE LINK UPDATE KIYA GAYA */}
-            <SidebarLink
-              href="/activity-logs"
-              label="Activity Logs"
-              icon={<History />}
-              isActive={isActive("/activity-logs")}
-              onClick={onLinkClick}
-            />
-
+            {/* <<<<<<< Activity Log ka link yahan se hata diya gaya hai */}
+            
             <div className="mt-4 mb-2 text-xs text-gray-400 font-semibold px-2">Super Admin</div>
             <SidebarLink
               href="/hostels/add"
@@ -182,7 +176,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Add Room
               </Link>
               <Link href="/rooms/manage" className={cn("sidebar-dropdown-item", isActive("/rooms/manage") && "active")} onClick={onLinkClick}>
-                Manage Rooms    
+                Manage Rooms
               </Link>
             </SidebarDropdown>
             <SidebarDropdown
@@ -197,7 +191,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
                 Manage Students
               </Link>
             </SidebarDropdown>
-            <SidebarLink    
+            <SidebarLink
               href="/take-attendance"
               label="Take Attendance"
               icon={<ClipboardCheck />}
@@ -240,14 +234,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
               onClick={onLinkClick}
             />
             
-            {/* <<<<<<< NORMAL ADMIN KE LIYE LINK UPDATE KIYA GAYA */}
-            <SidebarLink
-              href="/activity-logs"
-              label="Activity Logs"
-              icon={<History />}
-              isActive={isActive("/activity-logs")}
-              onClick={onLinkClick}
-            />
+            {/* <<<<<<< Activity Log ka link yahan se bhi hata diya gaya hai */}
           </>
         )}
       </nav>
@@ -256,7 +243,7 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
           className="sidebar-item text-red-600 hover:bg-red-50 hover:text-red-700"
           onClick={() => {
             if (window.confirm("Are you sure you want to log out?")) {
-              logActivity('LOGOUT');
+              // <<<<<<< Logout tracking hata di gayi hai
               localStorage.clear();
               window.location.href = "/";
             }
