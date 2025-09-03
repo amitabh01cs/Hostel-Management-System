@@ -6,9 +6,8 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { Mic, StopCircle, Info } from "lucide-react";
 import Layout2 from "../components/layout/Layout2";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-//Add Auth: 
+// Auth Hook:
 import { useAdminAuth } from "../hooks/useAdminAuth";
-
 
 type Student = {
   id: number;
@@ -17,10 +16,8 @@ type Student = {
 };
 
 const AdminEmergencyReport: React.FC = () => {
-
-    //auth hook: 
-    const { admin , loading } = useAdminAuth();
-
+  // Auth hook:
+  const { admin, loading } = useAdminAuth();
 
   const [transcript, setTranscript] = useState("");
   const [listening, setListening] = useState(false);
@@ -29,50 +26,44 @@ const AdminEmergencyReport: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [studentId, setStudentId] = useState("");
-  // Gender filter state, set automatically based on admin type
-  const [genderFilter, setGenderFilter] = useState<"" | "M" | "F">("");
   const recognitionRef = useRef<any>(null);
 
-  //Auth Gaurd : 
+  // CHANGED: Combined Auth Guard and Data Fetching into one useEffect
   useEffect(() => {
-    if(!loading && !admin) {
-        window.location.href ="/login";
+    // Wait until auth state is confirmed
+    if (loading) {
+      return;
     }
-  } , [admin , loading]);
-
-  // Set genderFilter automatically from localStorage adminUser.adminType
-  useEffect(() => {
-    const adminUserRaw = localStorage.getItem("adminUser");
-    const adminUser = adminUserRaw ? JSON.parse(adminUserRaw) : null;
-    if (adminUser && adminUser.adminType) {
-      const type = adminUser.adminType.trim().toLowerCase();
-      if (type === "varahmihir") setGenderFilter("M");
-      else if (type === "maitreyi") setGenderFilter("F");
-      else setGenderFilter("");
+    // If not admin after loading, redirect
+    if (!admin) {
+      window.location.href = "/login";
+      return;
     }
-  }, []);
 
-  // Get adminId from localStorage
-  const adminUserRaw = localStorage.getItem("adminUser");
-  const adminUser = adminUserRaw ? JSON.parse(adminUserRaw) : null;
-  const adminId = adminUser?.adminId;
-
-  // Fetch students when genderFilter changes
-  useEffect(() => {
+    // Fetch students based on admin type from the auth hook
     setStudentsLoading(true);
+    const adminType = admin.adminType ? admin.adminType.trim().toLowerCase() : "";
     let url = "https://hostel-backend-module-production-iist.up.railway.app/api/student/filtered-list";
-    if (genderFilter) url += `?gender=${genderFilter}`;
+
+    // Append gender query param based on adminType
+    if (adminType === "varahmihir") {
+      url += "?gender=M";
+    } else if (adminType === "maitreyi") {
+      url += "?gender=F";
+    }
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
         setStudents(data);
-        setStudentsLoading(false);
       })
       .catch(() => {
         setStudents([]);
+      })
+      .finally(() => {
         setStudentsLoading(false);
       });
-  }, [genderFilter]);
+  }, [admin, loading]); // This effect now correctly depends on the auth state
 
   const startListening = () => {
     setSubmitStatus(null);
@@ -125,7 +116,8 @@ const AdminEmergencyReport: React.FC = () => {
     setSubmitStatus(null);
     setSubmitMsg("");
 
-    if (!adminId) {
+    // CHANGED: Get adminId directly from the 'admin' object from the hook
+    if (!admin || !admin.adminId) {
       setSubmitStatus("error");
       setSubmitMsg("You are not logged in as Admin!");
       return;
@@ -148,7 +140,7 @@ const AdminEmergencyReport: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          adminId,
+          adminId: admin.adminId, // Using adminId from hook
           studentId,
           transcript,
         }),
@@ -170,6 +162,14 @@ const AdminEmergencyReport: React.FC = () => {
       setSubmitMsg("Failed to submit. " + (err as any).message);
     }
   };
+
+  if (loading || !admin) {
+      return (
+          <Layout2>
+              <div className="p-8">Loading...</div>
+          </Layout2>
+      )
+  }
 
   return (
     <Layout2>
@@ -203,69 +203,43 @@ const AdminEmergencyReport: React.FC = () => {
               </div>
               <div>
                 <label className="block font-medium mb-1">
-                  Speak or type your emergency report
+                  Report Details *
                 </label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    className="bg-green-600"
-                    onClick={startListening}
-                    disabled={listening}
-                  >
-                    <Mic className="mr-2" /> {listening ? "Listening..." : "Start Speaking"}
-                  </Button>
-                  <Button
-                    type="button"
-                    className="bg-red-600"
-                    onClick={stopListening}
-                    disabled={!listening}
-                  >
-                    <StopCircle className="mr-2" /> Stop
-                  </Button>
-                </div>
-                <Textarea
-                  rows={6}
-                  placeholder="Emergency description (you can also edit here)"
-                  className="mt-2"
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                  required
-                />
-              </div>
-
-              {submitStatus && (
-                <Alert
-                  className={
-                    submitStatus === "success"
-                      ? "bg-green-50 border-green-200"
-                      : "bg-red-50 border-red-200"
-                  }
-                >
-                  <Info
-                    className={
-                      submitStatus === "success" ? "text-green-600" : "text-red-600"
-                    }
+                <div className="relative">
+                  <Textarea
+                    placeholder="Start speaking or type here..."
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    rows={6}
+                    className="pr-20"
                   />
-                  <AlertDescription
-                    className={
-                      submitStatus === "success"
-                        ? "text-green-800"
-                        : "text-red-800"
-                    }
-                  >
-                    {submitMsg}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-blue-600"
-                disabled={listening}
-              >
-                Submit Emergency Report
+                  <div className="absolute top-2 right-2 flex flex-col space-y-2">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={listening ? "destructive" : "outline"}
+                      onClick={listening ? stopListening : startListening}
+                    >
+                      {listening ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <Button type="submit" className="w-full">
+                Submit Report
               </Button>
             </form>
+            {submitMsg && (
+              <Alert className="mt-4" variant={submitStatus === "success" ? "default" : "destructive"}>
+                <AlertDescription>{submitMsg}</AlertDescription>
+              </Alert>
+            )}
+            <Alert className="mt-6" variant="default">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Click the microphone to start voice-to-text. The report will be submitted under your admin ID.
+              </AlertDescription>
+            </Alert>
           </CardContent>
         </Card>
       </div>
