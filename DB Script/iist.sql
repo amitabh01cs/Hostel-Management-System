@@ -243,3 +243,15 @@ ALTER TABLE hostel_bed
 
 -- ========= CHECKS ALREADY INCLUDED IN TABLES WHERE RELEVANT =======
 
+CREATE TABLE user_activity_log (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    user_email VARCHAR(100) NOT NULL,
+    user_type VARCHAR(50) NOT NULL,
+    ip_address VARCHAR(50),
+    action_type VARCHAR(30) NOT NULL, -- e.g. VISIT, CLICK, ERROR
+    page_url VARCHAR(255) NOT NULL,
+    action_description VARCHAR(255),
+    activity_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
