@@ -24,8 +24,8 @@ import {
 import { Trash2 } from "lucide-react";
 import { formatDateTime, getStatusColor } from "../lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser } from "../getUser"; // 👈 Import
-import { logUserActivity } from "../utils/activityLogger"; // 👈 Import
+import { getCurrentUser } from "../../../../../../src/getUser"; // 👈 Import  import App from ""
+import { logUserActivity } from "../../../../../../src/utils/activityLogger"; // 👈 Import
 
 type AccessLog = {
   id: number;
