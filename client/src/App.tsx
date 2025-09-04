@@ -1,8 +1,8 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter"; // Import Router from wouter!
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { usePageLogger } from "./hooks/usePageLogger"; // 👈 Add this import
-import { getCurrentUser } from "./getUser"; // 👈 Add this import
+import { usePageLogger } from "./hooks/usePageLogger";
+import { getCurrentUser } from "./getUser";
 
 // Core pages
 import Home from "@/pages/Home";
@@ -10,7 +10,6 @@ import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 
 // Module apps
-// import Indexi from "@/module/HostelDashboard/client/src/Indexi";
 import HostelStudentApp from "@/module/HostelStudentPortal/client/src/HostelStudentApp";
 import SecurityDashboardApp from "@/module/SecurityDashboard/client/src/SecurityDashboardApp";
 
@@ -62,7 +61,8 @@ import SuperAdminMedicalHistory from "@/module/HostelDashboard/client/src/pages/
 // Global CSS
 import "@/index.css";
 
-function Router() {
+// All your routes component
+function MyRoutes() {
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -88,8 +88,6 @@ function Router() {
       <Route path="/student/change-password" component={ChangePassword} />
 
       <Route path="/security/dashboard" component={SecurityDashboard} />
-
-      {/* <Route path="/dashboard/:rest*" component={Indexi} /> */}
       <Route path="/student/:rest*" component={HostelStudentApp} />
       <Route path="/security/:rest*" component={SecurityDashboardApp} />
 
@@ -106,15 +104,23 @@ function Router() {
   );
 }
 
+// This ensures usePageLogger is inside <Router>
+function PageLoggerWrapper({ user }) {
+  usePageLogger(user);
+  return null;
+}
+
 function App() {
-  const user = getCurrentUser(); // 👈 Get the user object from localStorage (student, admin, or security)
-  usePageLogger(user); // 👈 Log every page visit with user info
+  const user = getCurrentUser();
 
   return (
-    <TooltipProvider>
-      <Toaster />
-      <Router />
-    </TooltipProvider>
+    <Router>
+      <TooltipProvider>
+        <Toaster />
+        <PageLoggerWrapper user={user} />
+        <MyRoutes />
+      </TooltipProvider>
+    </Router>
   );
 }
 
