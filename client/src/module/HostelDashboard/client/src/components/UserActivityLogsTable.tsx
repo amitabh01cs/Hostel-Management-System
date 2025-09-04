@@ -4,7 +4,7 @@ function UserActivityLogsTable() {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    fetch("https://your-backend.com/api/activity-logs") // <-- Yahan backend ka sahi URL daalo
+    fetch("https://hostel-backend-module-production-iist.up.railway.app/api/activity-logs") // <-- Yahan backend ka sahi URL daalo
       .then(res => res.json())
       .then(data => setLogs(data.logs || data))
       .catch(err => setLogs([]));
