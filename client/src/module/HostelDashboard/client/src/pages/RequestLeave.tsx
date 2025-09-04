@@ -3,10 +3,19 @@ import { DataTable } from "../components/ui/data-table";
 import { Button } from "../components/ui/button";
 import Layout2 from "../components/layout/Layout2";
 import {
-  Card, CardContent, CardHeader, CardTitle, CardDescription
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
 } from "../components/ui/card";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "../components/ui/dialog";
 import { Badge } from "../components/ui/badge";
 import { Eye, CalendarDays, Pencil, Download } from "lucide-react";
@@ -16,6 +25,44 @@ import { useAdminAuth } from "../hooks/useAdminAuth";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import * as XLSX from "xlsx";
+
+// Mock helper functions and components for the missing pieces
+const getStatusColor = (status) => {
+  switch (status.toLowerCase()) {
+    case "approved":
+      return "bg-green-500 text-white";
+    case "rejected":
+      return "bg-red-500 text-white";
+    case "pending":
+    default:
+      return "bg-yellow-500 text-black";
+  }
+};
+
+const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+const useAdminAuth = () => {
+  const [admin, setAdmin] = useState({
+    adminType: "varahmihir",
+    name: "Mock Admin",
+  });
+  const [loading, setLoading] = useState(false);
+  return { admin, loading };
+};
+
+const useToast = () => {
+  return {
+    toast: ({ title, variant = "default" }) => {
+      console.log(`Toast: ${title}, Variant: ${variant}`);
+      alert(`Toast: ${title}`);
+    },
+  };
+};
+
+const Layout2 = ({ children }) => (
+  <div className="min-h-screen bg-gray-100 p-8">{children}</div>
+);
+
 // Helper: convert Date to local datetime-local input string "YYYY-MM-DDTHH:mm"
 function toLocalDatetimeLocalString(date) {
   if (!date) return "";
@@ -684,6 +731,46 @@ const RequestLeave = () => {
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleEditPassPeriod}
         />
+        {/* Check-In/Out Modal */}
+        <Dialog open={showCheckInOut} onOpenChange={setShowCheckInOut}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Check-In/Out Logs</DialogTitle>
+              <DialogDescription>
+                Logs of students who have checked in or out on the selected date.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-2 mb-4">
+              <label className="font-medium">Select Date:</label>
+              <DatePicker
+                selected={checkInOutDate}
+                onChange={(date) => date && setCheckInOutDate(date)}
+                dateFormat="yyyy-MM-dd"
+                className="input"
+                placeholderText="Select a date"
+                showPopperArrow={false}
+              />
+            </div>
+            {checkInOutLoading ? (
+              <div className="text-center py-4">Loading logs...</div>
+            ) : (
+              <DataTable
+                columns={checkInOutColumns}
+                data={checkInOutData}
+                searchColumn="studentName"
+                searchPlaceholder="Search by student name..."
+              />
+            )}
+            {checkInOutData.length === 0 && !checkInOutLoading && (
+              <div className="pt-4">No logs found for this date.</div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCheckInOut(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout2>
   );
