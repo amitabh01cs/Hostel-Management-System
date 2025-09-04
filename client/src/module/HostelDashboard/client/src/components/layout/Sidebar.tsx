@@ -9,8 +9,6 @@ import {
 import headerImage from "@assets/header.png";
 import { cn } from "@/lib/utils";
 
-// <<<<<<< Logger ka import hata diya gaya hai
-
 const SidebarLink = ({ href, label, icon, isActive, onClick }) => (
   <Link href={href} className={cn("sidebar-item", isActive && "active")} onClick={onClick}>
     <span className="sidebar-item-icon">{icon}</span>
@@ -111,8 +109,15 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
               </Link>
             </SidebarDropdown>
 
-            {/* <<<<<<< Activity Log ka link yahan se hata diya gaya hai */}
-            
+            {/* ------- Activity Log link SuperAdmin ke liye yahan add kiya ------- */}
+            <SidebarLink
+              href="/user-access-logs"
+              label="User Access Logs"
+              icon={<History />}
+              isActive={isActive("/user-access-logs")}
+              onClick={onLinkClick}
+            />
+
             <div className="mt-4 mb-2 text-xs text-gray-400 font-semibold px-2">Super Admin</div>
             <SidebarLink
               href="/hostels/add"
@@ -233,8 +238,15 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
               isActive={isActive("/emergency-report")}
               onClick={onLinkClick}
             />
-            
-            {/* <<<<<<< Activity Log ka link yahan se bhi hata diya gaya hai */}
+
+            {/* ------- Activity Log link Admin ke liye yahan add kiya ------- */}
+            <SidebarLink
+              href="/user-access-logs"
+              label="User Access Logs"
+              icon={<History />}
+              isActive={isActive("/user-access-logs")}
+              onClick={onLinkClick}
+            />
           </>
         )}
       </nav>
@@ -243,7 +255,6 @@ const Sidebar = ({ mobileOpen = false, setMobileOpen }) => {
           className="sidebar-item text-red-600 hover:bg-red-50 hover:text-red-700"
           onClick={() => {
             if (window.confirm("Are you sure you want to log out?")) {
-              // <<<<<<< Logout tracking hata di gayi hai
               localStorage.clear();
               window.location.href = "/";
             }
