@@ -24,8 +24,9 @@ import {
 import { Trash2 } from "lucide-react";
 import { formatDateTime, getStatusColor } from "../lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { getCurrentUser } from "../getUser"; // 👈 Import
+import { logUserActivity } from "../utils/activityLogger"; // 👈 Import
 
-// Define access log data type
 type AccessLog = {
   id: number;
   userId: string;
@@ -46,7 +47,19 @@ const UserAccessLogs = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
 
-  // Fetch logs from backend with mapping from snake_case to camelCase
+  // Log page visit
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      logUserActivity({
+        ...user,
+        actionType: "VISIT",
+        pageUrl: "/user-access-logs",
+        actionDescription: "Visited User Access Logs page"
+      });
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     fetch("https://hostel-backend-module-production-iist.up.railway.app/api/access-log")
@@ -78,16 +91,27 @@ const UserAccessLogs = () => {
   // Clear logs via backend API
   const handleClearLogs = () => {
     setIsAlertDialogOpen(false);
-    fetch("https://backend-hostel-module-production-iist.up.railway.app/api/access-log", {
+    fetch("https://hostel-backend-module-production-iist.up.railway.app/api/access-log", {
       method: "DELETE",
     })
       .then((res) => res.json())
       .then(() => {
-        setAccessLogs([]); // Clear UI
+        setAccessLogs([]);
         toast({
           title: "Logs Cleared",
           description: "Access logs have been successfully cleared.",
         });
+
+        // Log clear action
+        const user = getCurrentUser();
+        if (user) {
+          logUserActivity({
+            ...user,
+            actionType: "ACTION",
+            pageUrl: "/user-access-logs",
+            actionDescription: "Cleared all access logs"
+          });
+        }
       })
       .catch(() => {
         toast({
@@ -98,7 +122,6 @@ const UserAccessLogs = () => {
       });
   };
 
-  // DataTable columns use camelCase keys
   const columns = [
     {
       accessorKey: "id",
@@ -128,7 +151,6 @@ const UserAccessLogs = () => {
         return formatDateTime(date);
       },
     },
-    
     {
       accessorKey: "status",
       header: "Status",
@@ -187,7 +209,6 @@ const UserAccessLogs = () => {
             />
           </CardContent>
         </Card>
-        {/* Clear Logs Confirmation Dialog */}
         <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
