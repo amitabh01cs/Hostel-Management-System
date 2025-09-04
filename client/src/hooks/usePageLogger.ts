@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation } from "wouter"; // 👈 THIS IS THE FIX!
 import { useEffect } from "react";
 import { logUserActivity } from "../utils/activityLogger";
 
@@ -7,7 +7,7 @@ export function usePageLogger(user: {
   userEmail: string;
   userType: string;
 }) {
-  const location = useLocation();
+  const [location] = useLocation(); // 👈 Wouter returns [location, setLocation]
 
   useEffect(() => {
     if (!user?.userId) return;
@@ -16,8 +16,8 @@ export function usePageLogger(user: {
       userEmail: user.userEmail,
       userType: user.userType,
       actionType: "VISIT",
-      pageUrl: location.pathname,
-      actionDescription: "Visited " + location.pathname,
+      pageUrl: location,
+      actionDescription: "Visited " + location,
     });
-  }, [location.pathname, user]);
+  }, [location, user]);
 }
