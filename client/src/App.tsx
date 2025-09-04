@@ -1,4 +1,4 @@
-import { Switch, Route, Router } from "wouter"; // Import Router from wouter!
+import { Switch, Route, Router } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePageLogger } from "./hooks/usePageLogger";
