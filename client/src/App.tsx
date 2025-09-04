@@ -61,7 +61,7 @@ import SuperAdminMedicalHistory from "@/module/HostelDashboard/client/src/pages/
 // Global CSS
 import "@/index.css";
 
-// All your routes component
+// Sare routes ek component me
 function MyRoutes() {
   return (
     <Switch>
@@ -79,32 +79,27 @@ function MyRoutes() {
       <Route path="/request-leave" component={RequestLeave} />
       <Route path="/complaint-box" component={ComplaintBox} />
       <Route path="/user-access-logs" component={UserAccessLogs} />
-
       <Route path="/student/dashboard" component={Dashboard} />
       <Route path="/student/request-leave" component={GatePassForm} />
       <Route path="/leave-status" component={LeaveStatus} />
       <Route path="/complaints" component={ComplaintBoxS} />
       <Route path="/anti-ragging" component={AntiRagging} />
       <Route path="/student/change-password" component={ChangePassword} />
-
       <Route path="/security/dashboard" component={SecurityDashboard} />
       <Route path="/student/:rest*" component={HostelStudentApp} />
       <Route path="/security/:rest*" component={SecurityDashboardApp} />
-
       <Route path="/admin-complaint" component={AdminComplaintBox} />
       <Route path="/medical-history" component={AdminMedicalHistory} />
       <Route path="/emergency-report" component={AdminEmergencyReport} />
-
       <Route path="/superadmin/admin-complaints" component={SuperAdminAdminComplaints} />
       <Route path="/superadmin/emergency-reports" component={SuperAdminEmergencyReports} />
       <Route path="/superadmin/medical-history" component={SuperAdminMedicalHistory} />
-
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// This ensures usePageLogger is inside <Router>
+// Logger ko ek wrapper me daal do taki wo Router ke andar hi chale
 function PageLoggerWrapper({ user }) {
   usePageLogger(user);
   return null;
