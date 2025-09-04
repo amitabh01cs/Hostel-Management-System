@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "../components/ui/data-table";
-import UserActivityLogsTable from "../components/UserActivityLogsTable";
+// import UserActivityLogsTable from "../components/UserActivityLogsTable";
 import Layout2 from "../components/layout/Layout2";
 import { 
   Card, 
@@ -172,11 +172,11 @@ const UserAccessLogs = () => {
         <div className="space-y-1 mb-6">
           <h2 className="page-title">User Access Logs</h2>
           <p className="page-description">Track user login activities</p>
-        </div>
+{/*         </div>
          <div className="p-8">
         <h2 className="text-xl font-bold mb-4">User Activity Logs</h2>
         <UserActivityLogsTable />
-      </div>
+      </div> */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
