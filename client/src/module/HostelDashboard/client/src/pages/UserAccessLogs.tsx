@@ -172,8 +172,8 @@ const UserAccessLogs = () => {
         <div className="space-y-1 mb-6">
           <h2 className="page-title">User Access Logs</h2>
           <p className="page-description">Track user login activities</p>
-{/*         </div>
-         <div className="p-8">
+        </div>
+{/*          <div className="p-8">
         <h2 className="text-xl font-bold mb-4">User Activity Logs</h2>
         <UserActivityLogsTable />
       </div> */}
