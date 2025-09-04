@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "../components/ui/data-table";
+import UserActivityLogsTable from "@/components/UserActivityLogsTable";
 import Layout2 from "../components/layout/Layout2";
 import { 
   Card, 
