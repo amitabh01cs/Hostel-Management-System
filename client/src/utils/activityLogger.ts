@@ -9,7 +9,7 @@ export type ActivityLogPayload = {
 
 export async function logUserActivity(payload: ActivityLogPayload) {
   try {
-    await fetch("https://your-backend-domain/api/activity-log", {
+    await fetch("https://hostel-backend-module-production-iist.up.railway.app/api/activity-log", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
