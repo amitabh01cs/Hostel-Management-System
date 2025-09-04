@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "../components/ui/data-table";
 import { Button } from "../components/ui/button";
-import Layout2 from "../components/layout/Layout2";
 import {
   Card,
   CardContent,
@@ -18,7 +17,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { Badge } from "../components/ui/badge";
-import { Eye, CalendarDays, Pencil, Download } from "lucide-react";
+import { Eye, CalendarDays, Pencil, Download, Menu } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { cn, getStatusColor } from "../lib/utils";
 import { useAdminAuth } from "../hooks/useAdminAuth";
@@ -59,9 +58,55 @@ const useToast = () => {
   };
 };
 
-const Layout2 = ({ children }) => (
-  <div className="min-h-screen bg-gray-100 p-8">{children}</div>
-);
+// Updated Layout2 component with a basic sidebar
+const Layout2 = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 transform bg-gray-800 text-white transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } w-64 p-4 flex flex-col`}
+      >
+        <div className="text-2xl font-bold mb-8">Admin Panel</div>
+        <nav className="flex-1 space-y-2">
+          <a
+            href="#"
+            className="flex items-center p-2 rounded-md hover:bg-gray-700"
+          >
+            Dashboard
+          </a>
+          <a
+            href="#"
+            className="flex items-center p-2 rounded-md bg-gray-700"
+          >
+            Leave Requests
+          </a>
+          <a
+            href="#"
+            className="flex items-center p-2 rounded-md hover:bg-gray-700"
+          >
+            Settings
+          </a>
+        </nav>
+      </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top bar for mobile */}
+        <header className="bg-white shadow-sm p-4 md:hidden flex items-center justify-between">
+          <Button variant="ghost" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+            <Menu className="w-6 h-6" />
+          </Button>
+          <div className="text-xl font-bold text-gray-800">Admin Panel</div>
+        </header>
+        <main className="p-8 flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
 
 // Helper: convert Date to local datetime-local input string "YYYY-MM-DDTHH:mm"
 function toLocalDatetimeLocalString(date) {
