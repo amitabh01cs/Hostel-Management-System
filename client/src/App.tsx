@@ -1,6 +1,8 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { usePageLogger } from "./hooks/usePageLogger"; // 👈 Add this import
+import { getCurrentUser } from "./getUser"; // 👈 Add this import
 
 // Core pages
 import Home from "@/pages/Home";
@@ -105,6 +107,9 @@ function Router() {
 }
 
 function App() {
+  const user = getCurrentUser(); // 👈 Get the user object from localStorage (student, admin, or security)
+  usePageLogger(user); // 👈 Log every page visit with user info
+
   return (
     <TooltipProvider>
       <Toaster />
