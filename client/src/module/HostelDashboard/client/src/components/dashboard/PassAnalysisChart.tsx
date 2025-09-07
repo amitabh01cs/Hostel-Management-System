@@ -10,6 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../components/ui/dialog";
+import { useAdminAuth } from "../hooks/useAdminAuth"; // Import the authentication hook
 
 // --- TypeScript Interfaces for Data Structures ---
 
@@ -34,8 +35,6 @@ interface StudentWithPassCount extends Student {
   passCount: number;
 }
 
-type GenderFilter = "total" | "Male" | "Female";
-
 // --- Backend API URL ---
 const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
 
@@ -55,19 +54,28 @@ const PassAnalysisChart = () => {
   const [allPasses, setAllPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<GenderFilter>("total");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalTitle, setModalTitle] = useState<string>("");
   const [modalStudentList, setModalStudentList] = useState<StudentWithPassCount[]>([]);
 
+  // Use the admin auth hook to get the logged-in admin's details
+  const { admin, loading: adminLoading } = useAdminAuth();
+
   useEffect(() => {
+    // If admin data is still loading or not available, don't fetch chart data yet
+    if (adminLoading || !admin) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
+    // Automatically determine the URL based on the admin's hostel type
+    const adminType = admin.adminType ? admin.adminType.trim().toLowerCase() : "";
     let url = backendUrl;
-    if (activeFilter === "Male") {
+    if (adminType === "varahmihir") {
       url += "?gender=M";
-    } else if (activeFilter === "Female") {
+    } else if (adminType === "maitreyi") {
       url += "?gender=F";
     }
 
@@ -110,7 +118,7 @@ const PassAnalysisChart = () => {
       .finally(() => {
         setLoading(false);
       });
-  }, [activeFilter]);
+  }, [admin, adminLoading]); // Re-run the effect when admin data changes
 
   const handleBarClick = (data: ChartData) => {
     const clickedYearName = data.name;
@@ -132,22 +140,27 @@ const PassAnalysisChart = () => {
     }, {});
 
     const uniqueStudentsWithCounts = Object.values(studentPassCounts);
-    const finalTitle = activeFilter === 'total' ? 'All' : activeFilter;
+    
+    // Determine the title for the modal based on admin type
+    const adminType = admin?.adminType ? admin.adminType.trim().toLowerCase() : "";
+    let filterName = "All";
+    if (adminType === 'varahmihir') filterName = 'Male';
+    if (adminType === 'maitreyi') filterName = 'Female';
 
-    setModalTitle(`${finalTitle} Students from ${clickedYearName}`);
+    setModalTitle(`${filterName} Students from ${clickedYearName}`);
     setModalStudentList(uniqueStudentsWithCounts);
     setIsModalOpen(true);
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (adminLoading || loading) {
         return <div className="h-64 flex items-center justify-center">Loading Chart Data...</div>;
     }
     if (error) {
         return <div className="h-64 flex items-center justify-center text-red-500">{error}</div>;
     }
     if (chartData.length === 0) {
-        return <div className="h-64 flex items-center justify-center">No pass data available for this filter.</div>;
+        return <div className="h-64 flex items-center justify-center">No pass data available.</div>;
     }
     return (
         <ResponsiveContainer width="100%" height="100%">
@@ -181,11 +194,7 @@ const PassAnalysisChart = () => {
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-medium">Year-wise Pass Analysis</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant={activeFilter === 'total' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('total')}>All</Button>
-            <Button variant={activeFilter === 'Male' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('Male')}>Male</Button>
-            <Button variant={activeFilter === 'Female' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('Female')}>Female</Button>
-          </div>
+          {/* The manual filter buttons have been removed */}
         </CardHeader>
         <CardContent>
           <div className="h-64">
