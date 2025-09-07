@@ -44,7 +44,7 @@ const getISTDateOnly = (date: Date): string => {
     return formatter.format(date);
 };
 
-const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
+const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/filtered-list";
 const checkInOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/completed-logs";
 
 const StatCard = ({
