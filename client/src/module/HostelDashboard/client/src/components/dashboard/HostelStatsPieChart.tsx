@@ -32,7 +32,7 @@ interface PieChartData {
 }
 
 // --- API Endpoints ---
-const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/filtered-list";
+const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
 const passesUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
 // UPDATED: Using the new, more efficient endpoint for currently out students
 const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/currently-out";
@@ -63,6 +63,8 @@ const HostelStatsPieChart = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalStudentList, setModalStudentList] = useState<Student[]>([]);
+  const [showRoomNoColumn, setShowRoomNoColumn] = useState(true);
+  const [showStudentIdColumn, setShowStudentIdColumn] = useState(true);
   
   const { admin, loading: adminLoading } = useAdminAuth();
 
@@ -144,14 +146,20 @@ const HostelStatsPieChart = () => {
       case "Total Students":
         list = totalStudents;
         title = "All Students in Hostel";
+        setShowRoomNoColumn(true);
+        setShowStudentIdColumn(true);
         break;
       case "Took Pass Today":
         list = studentsWithPassToday;
         title = "Students Who Took a Pass Today";
+        setShowRoomNoColumn(true);
+        setShowStudentIdColumn(true);
         break;
       case "Currently Out":
         list = studentsOut;
         title = "Students Currently Checked Out";
+        setShowRoomNoColumn(false);
+        setShowStudentIdColumn(false);
         break;
       default:
         return;
@@ -221,19 +229,19 @@ const HostelStatsPieChart = () => {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3">Student ID</th>
+                  {showStudentIdColumn && <th scope="col" className="px-6 py-3">Student ID</th>}
                   <th scope="col" className="px-6 py-3">Full Name</th>
                   <th scope="col" className="px-6 py-3">Branch</th>
-                  <th scope="col" className="px-6 py-3">Room No.</th>
+                  {showRoomNoColumn && <th scope="col" className="px-6 py-3">Room No.</th>}
                 </tr>
               </thead>
               <tbody>
                 {modalStudentList.map((student) => (
                   <tr key={student.id} className="bg-white border-b">
-                    <td className="px-6 py-4">{student.id}</td>
+                    {showStudentIdColumn && <td className="px-6 py-4">{student.id}</td>}
                     <td className="px-6 py-4 font-medium text-gray-900">{student.fullName}</td>
                     <td className="px-6 py-4">{student.branch || "-"}</td>
-                    <td className="px-6 py-4">{student.roomNo || "-"}</td>
+                    {showRoomNoColumn && <td className="px-6 py-4">{student.roomNo || "-"}</td>}
                   </tr>
                 ))}
               </tbody>
