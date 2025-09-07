@@ -46,7 +46,7 @@ const DashboardB = () => {
         {/* Charts and Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <PassAnalysisChart />
-          <ActivityList />
+          <HostelStatsPieChart />
         </div>
 
         {/* Quick Actions */}
