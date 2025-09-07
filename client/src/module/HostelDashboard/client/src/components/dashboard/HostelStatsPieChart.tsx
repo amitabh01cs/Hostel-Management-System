@@ -23,6 +23,7 @@ interface Student {
 
 interface GatePass {
   student?: Student;
+  createdAt: string; // Added for date filtering
 }
 
 interface PieChartData {
@@ -37,10 +38,23 @@ const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railwa
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
+// Helper to get date as YYYY-MM-DD in 'Asia/Kolkata' (IST) timezone
+const getISTDateOnly = (date: Date): string => {
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Kolkata',
+  };
+  // The 'en-CA' locale formats the date as YYYY-MM-DD, which is perfect for our needs.
+  const formatter = new Intl.DateTimeFormat('en-CA', options);
+  return formatter.format(date);
+};
+
 const HostelStatsPieChart = () => {
   const [statsData, setStatsData] = useState<PieChartData[]>([]);
   const [totalStudents, setTotalStudents] = useState<Student[]>([]);
-  const [studentsWithPass, setStudentsWithPass] = useState<Student[]>([]);
+  const [studentsWithPassToday, setStudentsWithPassToday] = useState<Student[]>([]);
   const [studentsOut, setStudentsOut] = useState<Student[]>([]);
   
   const [loading, setLoading] = useState(true);
@@ -67,10 +81,11 @@ const HostelStatsPieChart = () => {
       }
 
       try {
+        // Fetch all students, all passes, and today's completed logs
         const [studentsRes, passesRes, outRes] = await Promise.all([
           fetch(`${studentsUrl}${genderQuery}`),
           fetch(`${passesUrl}${genderQuery}`),
-          fetch(`${currentlyOutUrl}${genderQuery}`) // Fetches today's logs by default
+          fetch(`${currentlyOutUrl}${genderQuery}`) // This endpoint defaults to today's date
         ]);
 
         if (!studentsRes.ok || !passesRes.ok || !outRes.ok) {
@@ -78,15 +93,22 @@ const HostelStatsPieChart = () => {
         }
 
         const studentsData: Student[] = await studentsRes.json();
-        const passesData: GatePass[] = await passesRes.json();
+        const allPassesData: GatePass[] = await passesRes.json();
         const outLogs: any[] = await outRes.json();
 
-        // Ensure all responses are arrays
-        if (!Array.isArray(studentsData) || !Array.isArray(passesData) || !Array.isArray(outLogs)) {
+        if (!Array.isArray(studentsData) || !Array.isArray(allPassesData) || !Array.isArray(outLogs)) {
             throw new Error("Invalid data format received from API.");
         }
+        
+        // 1. Filter for passes generated today (in IST)
+        const todayStr = getISTDateOnly(new Date());
+        const todaysPasses = allPassesData.filter(p => getISTDateOnly(new Date(p.createdAt)) === todayStr);
+        
+        // 2. Get unique students who took a pass today
+        const uniqueStudentIdsWithPassToday = new Set(todaysPasses.map(p => p.student?.id).filter(Boolean));
+        const studentsWithPassListToday = studentsData.filter(s => uniqueStudentIdsWithPassToday.has(s.id));
 
-        // Filter logs to find students who have checked out but not yet checked in
+        // 3. Filter logs to find students currently out (checked out, not checked in)
         const studentsCurrentlyOut = outLogs
           .filter(log => log.checkOutTime && !log.checkInTime)
           .map(log => ({
@@ -97,16 +119,15 @@ const HostelStatsPieChart = () => {
             gender: log.gender || "N/A",
           }));
 
-        const uniqueStudentIdsWithPass = new Set(passesData.map(p => p.student?.id).filter(Boolean));
-        const studentsWithPassList = studentsData.filter(s => uniqueStudentIdsWithPass.has(s.id));
-
+        // Set state for modals
         setTotalStudents(studentsData);
-        setStudentsWithPass(studentsWithPassList);
+        setStudentsWithPassToday(studentsWithPassListToday);
         setStudentsOut(studentsCurrentlyOut);
 
+        // Set data for Pie Chart
         const pieData = [
           { name: "Total Students", value: studentsData.length },
-          { name: "Took Pass", value: studentsWithPassList.length },
+          { name: "Took Pass Today", value: studentsWithPassListToday.length },
           { name: "Currently Out", value: studentsCurrentlyOut.length },
         ];
         setStatsData(pieData);
@@ -131,9 +152,9 @@ const HostelStatsPieChart = () => {
         list = totalStudents;
         title = "All Students in Hostel";
         break;
-      case "Took Pass":
-        list = studentsWithPass;
-        title = "Students Who Have Taken a Pass";
+      case "Took Pass Today":
+        list = studentsWithPassToday;
+        title = "Students Who Took a Pass Today";
         break;
       case "Currently Out":
         list = studentsOut;
@@ -156,7 +177,7 @@ const HostelStatsPieChart = () => {
       return <div className="h-64 flex items-center justify-center text-red-500">{error}</div>;
     }
     if (statsData.every(d => d.value === 0)) {
-        return <div className="h-64 flex items-center justify-center">No data available.</div>;
+        return <div className="h-64 flex items-center justify-center">No data available for today.</div>;
     }
     return (
       <ResponsiveContainer width="100%" height={250}>
@@ -187,8 +208,8 @@ const HostelStatsPieChart = () => {
     <>
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Overall Hostel Stats</CardTitle>
-          <CardDescription>Click on a slice for more details.</CardDescription>
+          <CardTitle className="text-lg font-medium">Today's Hostel Stats</CardTitle>
+          <CardDescription>Daily stats. Click on a slice for more details.</CardDescription>
         </CardHeader>
         <CardContent>
           {renderContent()}
@@ -201,7 +222,7 @@ const HostelStatsPieChart = () => {
             <DialogTitle>{modalTitle}</DialogTitle>
             <DialogDescription>
               A detailed list of all students in this category.
-            </DialogDescription>
+            </Dialog-description>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
             <table className="w-full text-sm text-left">
