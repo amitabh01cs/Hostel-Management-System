@@ -33,7 +33,7 @@ interface PieChartData {
 // --- API Endpoints ---
 const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
 const passesUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
-const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/currently-out";
+const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/completed-logs";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
@@ -70,7 +70,7 @@ const HostelStatsPieChart = () => {
         const [studentsRes, passesRes, outRes] = await Promise.all([
           fetch(`${studentsUrl}${genderQuery}`),
           fetch(`${passesUrl}${genderQuery}`),
-          fetch(`${currentlyOutUrl}${genderQuery}`)
+          fetch(`${currentlyOutUrl}${genderQuery}`) // Fetches today's logs by default
         ]);
 
         if (!studentsRes.ok || !passesRes.ok || !outRes.ok) {
@@ -79,24 +79,35 @@ const HostelStatsPieChart = () => {
 
         const studentsData: Student[] = await studentsRes.json();
         const passesData: GatePass[] = await passesRes.json();
-        const outData: Student[] = await outRes.json();
+        const outLogs: any[] = await outRes.json();
 
         // Ensure all responses are arrays
-        if (!Array.isArray(studentsData) || !Array.isArray(passesData) || !Array.isArray(outData)) {
+        if (!Array.isArray(studentsData) || !Array.isArray(passesData) || !Array.isArray(outLogs)) {
             throw new Error("Invalid data format received from API.");
         }
+
+        // Filter logs to find students who have checked out but not yet checked in
+        const studentsCurrentlyOut = outLogs
+          .filter(log => log.checkOutTime && !log.checkInTime)
+          .map(log => ({
+            id: log.studentId,
+            fullName: log.studentName || log.fullName || "N/A",
+            branch: log.branch || "N/A",
+            roomNo: log.roomNo || "N/A",
+            gender: log.gender || "N/A",
+          }));
 
         const uniqueStudentIdsWithPass = new Set(passesData.map(p => p.student?.id).filter(Boolean));
         const studentsWithPassList = studentsData.filter(s => uniqueStudentIdsWithPass.has(s.id));
 
         setTotalStudents(studentsData);
         setStudentsWithPass(studentsWithPassList);
-        setStudentsOut(outData);
+        setStudentsOut(studentsCurrentlyOut);
 
         const pieData = [
           { name: "Total Students", value: studentsData.length },
           { name: "Took Pass", value: studentsWithPassList.length },
-          { name: "Currently Out", value: outData.length },
+          { name: "Currently Out", value: studentsCurrentlyOut.length },
         ];
         setStatsData(pieData);
 
