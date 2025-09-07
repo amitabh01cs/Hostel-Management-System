@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { Button } from "../../components/ui/button";
 import {
@@ -24,6 +24,7 @@ interface Student {
 
 interface GatePass {
   student?: Student;
+  createdAt: string; // Ensure createdAt is available for filtering
 }
 
 interface ChartData {
@@ -38,6 +39,7 @@ interface StudentWithPassCount extends Student {
 // --- Backend API URL ---
 const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
 
+// Helper to get Year Name from number
 const getYearName = (year: string | number): string => {
   if (!year) return "Unknown Year";
   switch (String(year)) {
@@ -49,6 +51,19 @@ const getYearName = (year: string | number): string => {
   }
 };
 
+// Helper to get date as YYYY-MM in 'Asia/Kolkata' (IST) timezone
+const getISTMonthYear = (date: Date): string => {
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: '2-digit',
+      timeZone: 'Asia/Kolkata',
+    };
+    // The 'en-CA' locale formats the date as YYYY-MM-DD
+    const formatter = new Intl.DateTimeFormat('en-CA', options);
+    return formatter.format(date).slice(0, 7); // slice to get "YYYY-MM"
+};
+
+
 const PassAnalysisChart = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [allPasses, setAllPasses] = useState<GatePass[]>([]);
@@ -58,19 +73,14 @@ const PassAnalysisChart = () => {
   const [modalTitle, setModalTitle] = useState<string>("");
   const [modalStudentList, setModalStudentList] = useState<StudentWithPassCount[]>([]);
 
-  // Use the admin auth hook to get the logged-in admin's details
   const { admin, loading: adminLoading } = useAdminAuth();
 
   useEffect(() => {
-    // If admin data is still loading or not available, don't fetch chart data yet
-    if (adminLoading || !admin) {
-      return;
-    }
+    if (adminLoading || !admin) return;
 
     setLoading(true);
     setError(null);
 
-    // Automatically determine the URL based on the admin's hostel type
     const adminType = admin.adminType ? admin.adminType.trim().toLowerCase() : "";
     let url = backendUrl;
     if (adminType === "varahmihir") {
@@ -91,9 +101,16 @@ const PassAnalysisChart = () => {
             throw new Error("API response is not an array.");
         }
 
-        setAllPasses(data);
+        // Filter for passes created in the current month
+        const currentMonthStr = getISTMonthYear(new Date());
+        const passesThisMonth = data.filter(pass => {
+            if (!pass.createdAt) return false;
+            return getISTMonthYear(new Date(pass.createdAt)) === currentMonthStr;
+        });
 
-        const passCountsByYear = data.reduce((acc: Record<string, ChartData>, pass) => {
+        setAllPasses(passesThisMonth); // Store only this month's passes for modal logic
+
+        const passCountsByYear = passesThisMonth.reduce((acc: Record<string, ChartData>, pass) => {
           const student = pass.student;
           if (!student || !student.yearOfStudy) {
             return acc;
@@ -118,7 +135,7 @@ const PassAnalysisChart = () => {
       .finally(() => {
         setLoading(false);
       });
-  }, [admin, adminLoading]); // Re-run the effect when admin data changes
+  }, [admin, adminLoading]);
 
   const handleBarClick = (data: ChartData) => {
     const clickedYearName = data.name;
@@ -141,13 +158,12 @@ const PassAnalysisChart = () => {
 
     const uniqueStudentsWithCounts = Object.values(studentPassCounts);
     
-    // Determine the title for the modal based on admin type
     const adminType = admin?.adminType ? admin.adminType.trim().toLowerCase() : "";
     let filterName = "All";
     if (adminType === 'varahmihir') filterName = 'Male';
     if (adminType === 'maitreyi') filterName = 'Female';
 
-    setModalTitle(`${filterName} Students from ${clickedYearName}`);
+    setModalTitle(`${filterName} Students from ${clickedYearName} (This Month)`);
     setModalStudentList(uniqueStudentsWithCounts);
     setIsModalOpen(true);
   };
@@ -160,7 +176,7 @@ const PassAnalysisChart = () => {
         return <div className="h-64 flex items-center justify-center text-red-500">{error}</div>;
     }
     if (chartData.length === 0) {
-        return <div className="h-64 flex items-center justify-center">No pass data available.</div>;
+        return <div className="h-64 flex items-center justify-center">No pass data available for this month.</div>;
     }
     return (
         <ResponsiveContainer width="100%" height="100%">
@@ -192,9 +208,11 @@ const PassAnalysisChart = () => {
   return (
     <>
       <Card className="col-span-1 lg:col-span-2">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-medium">Year-wise Pass Analysis</CardTitle>
-          {/* The manual filter buttons have been removed */}
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium">Monthly Pass Analysis (Year-wise)</CardTitle>
+          <CardDescription>
+            Total passes taken by students of each year in the current month.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-64">
@@ -208,7 +226,7 @@ const PassAnalysisChart = () => {
           <DialogHeader>
             <DialogTitle>{modalTitle}</DialogTitle>
             <DialogDescription>
-              Unique list of students and their total passes for this category.
+              Unique list of students and their total passes for this category this month.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
@@ -244,3 +262,4 @@ const PassAnalysisChart = () => {
 };
 
 export default PassAnalysisChart;
+
