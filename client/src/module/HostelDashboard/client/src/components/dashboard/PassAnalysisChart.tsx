@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../components/ui/dialog";
-import { useAdminAuth } from "../hooks/useAdminAuth"; // Import the authentication hook
+import { useAdminAuth } from "../../hooks/useAdminAuth"; // Import the authentication hook
 
 // --- TypeScript Interfaces for Data Structures ---
 
