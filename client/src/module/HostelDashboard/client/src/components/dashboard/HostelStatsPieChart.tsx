@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../components/ui/dialog";
-import { useAdminAuth } from "../../hooks/useAdminAuth";
+import { useAdminAuth } from "../hooks/useAdminAuth";
 
 // --- TypeScript Interfaces ---
 interface Student {
@@ -222,7 +222,7 @@ const HostelStatsPieChart = () => {
             <DialogTitle>{modalTitle}</DialogTitle>
             <DialogDescription>
               A detailed list of all students in this category.
-            </Dialog-description>
+            </DialogDescription>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
             <table className="w-full text-sm text-left">
