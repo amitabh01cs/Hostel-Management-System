@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../components/ui/dialog";
-import { useAdminAuth } from "../hooks/useAdminAuth";
+import { useAdminAuth } from "../../hooks/useAdminAuth";
 
 // --- TypeScript Interfaces ---
 interface Student {
