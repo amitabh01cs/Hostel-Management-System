@@ -34,7 +34,8 @@ interface PieChartData {
 // --- API Endpoints ---
 const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
 const passesUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
-const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/completed-logs";
+// UPDATED: Using the new, more efficient endpoint for currently out students
+const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/currently-out";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
@@ -85,7 +86,7 @@ const HostelStatsPieChart = () => {
         const [studentsRes, passesRes, outRes] = await Promise.all([
           fetch(`${studentsUrl}${genderQuery}`),
           fetch(`${passesUrl}${genderQuery}`),
-          fetch(`${currentlyOutUrl}${genderQuery}`) // This endpoint defaults to today's date
+          fetch(`${currentlyOutUrl}${genderQuery}`) // This endpoint now correctly gets only students who are out
         ]);
 
         if (!studentsRes.ok || !passesRes.ok || !outRes.ok) {
@@ -94,9 +95,9 @@ const HostelStatsPieChart = () => {
 
         const studentsData: Student[] = await studentsRes.json();
         const allPassesData: GatePass[] = await passesRes.json();
-        const outLogs: any[] = await outRes.json();
+        const outData: Student[] = await outRes.json(); // The new endpoint directly returns a list of students
 
-        if (!Array.isArray(studentsData) || !Array.isArray(allPassesData) || !Array.isArray(outLogs)) {
+        if (!Array.isArray(studentsData) || !Array.isArray(allPassesData) || !Array.isArray(outData)) {
             throw new Error("Invalid data format received from API.");
         }
         
@@ -108,16 +109,8 @@ const HostelStatsPieChart = () => {
         const uniqueStudentIdsWithPassToday = new Set(todaysPasses.map(p => p.student?.id).filter(Boolean));
         const studentsWithPassListToday = studentsData.filter(s => uniqueStudentIdsWithPassToday.has(s.id));
 
-        // 3. Filter logs to find students currently out (checked out, not checked in)
-        const studentsCurrentlyOut = outLogs
-          .filter(log => log.checkOutTime && !log.checkInTime)
-          .map(log => ({
-            id: log.studentId,
-            fullName: log.studentName || log.fullName || "N/A",
-            branch: log.branch || "N/A",
-            roomNo: log.roomNo || "N/A",
-            gender: log.gender || "N/A",
-          }));
+        // 3. The data from the new endpoint is already filtered, so no extra client-side filtering is needed.
+        const studentsCurrentlyOut = outData;
 
         // Set state for modals
         setTotalStudents(studentsData);
