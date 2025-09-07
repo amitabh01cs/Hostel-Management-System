@@ -39,7 +39,7 @@ interface StudentWithPassCount extends Student {
 type GenderFilter = "total" | "Male" | "Female";
 
 // --- Backend API URL ---
-const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
+const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass";
 
 const getYearName = (year: string | number): string => {
   if (!year) return "Unknown Year";
