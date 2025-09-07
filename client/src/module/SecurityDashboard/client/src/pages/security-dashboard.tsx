@@ -308,7 +308,7 @@ export default function SecurityDashboard() {
         (student.reason || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (student.destination || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesPassType = passTypeFilter === "all" || student.passType === passTypeFilter;
+      const matchesPassType = passTypeFilter === "all" || (student.passType || "").toLowerCase() === passTypeFilter;
       const matchesStatus = statusFilter === "all" ||
         (statusFilter === "out" && student.status === "out") ||
         (statusFilter === "in" && student.status === "active");
@@ -531,9 +531,9 @@ export default function SecurityDashboard() {
                                     </div>
                                   </div>
                                   <div className="mt-2 flex items-center space-x-2">
-                                    <Badge variant={student.passType === "hourly" ? "default" : "secondary"}>
+                                    <Badge variant={(student.passType || '').toLowerCase() === "hourly" ? "default" : "secondary"}>
                                       <Clock className="w-3 h-3 mr-1" />
-                                      {t(student.passType === "hourly" ? "Hourly" : "Days")}
+                                      {t((student.passType || '').toLowerCase() === "hourly" ? "Hourly" : "Days")}
                                     </Badge>
                                     <Badge variant={student.status === "active" ? "default" : "destructive"}>
                                       {student.status === "active" ? (
@@ -620,67 +620,67 @@ export default function SecurityDashboard() {
                           return bTime - aTime;
                         })
                         .map((student) => {
-                        const approvedReturnTime = student.toTime;
-                        const actualCheckInTime = student.checkInTime;
-                        let cardBg = "#fff";
-                        let badgeColor = "bg-green-600 text-white";
-                        let badgeText = t("Journey Completed");
-                        if (approvedReturnTime && actualCheckInTime) {
-                          const approved = new Date(approvedReturnTime);
-                          const actual = new Date(actualCheckInTime);
-                          if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
-                            if (actual <= approved) {
-                              cardBg = "#d4edda";
-                              badgeColor = "bg-green-600 text-white";
-                              badgeText = t("Journey Completed");
-                            } else {
-                              cardBg = "#fff3cd";
-                              badgeColor = "bg-orange-500 text-white";
-                              badgeText = t("Late Check-In");
+                          const approvedReturnTime = student.toTime;
+                          const actualCheckInTime = student.checkInTime;
+                          let cardBg = "#fff";
+                          let badgeColor = "bg-green-600 text-white";
+                          let badgeText = t("Journey Completed");
+                          if (approvedReturnTime && actualCheckInTime) {
+                            const approved = new Date(approvedReturnTime);
+                            const actual = new Date(actualCheckInTime);
+                            if (!isNaN(approved.getTime()) && !isNaN(actual.getTime())) {
+                              if (actual <= approved) {
+                                cardBg = "#d4edda";
+                                badgeColor = "bg-green-600 text-white";
+                                badgeText = t("Journey Completed");
+                              } else {
+                                cardBg = "#fff3cd";
+                                badgeColor = "bg-orange-500 text-white";
+                                badgeText = t("Late Check-In");
+                              }
                             }
                           }
-                        }
-                        const imgUrl = getPhotoUrl(student.photoUrl, student.id, student.name);
+                          const imgUrl = getPhotoUrl(student.photoUrl, student.id, student.name);
 
-                        return (
-                          <div
-                            key={student.id}
-                            className="rounded-lg shadow border transition-all"
-                            style={{ background: cardBg }}
-                          >
-                            <div className="p-5 flex flex-col gap-3">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="w-16 h-16">
-                                  <AvatarImage src={imgUrl} alt={student.name} />
-                                  <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-semibold text-lg text-gray-900">{student.name}</div>
-                                  <div className="text-sm text-gray-600">ID: {student.id}</div>
-                                  <div className="text-sm text-blue-600 font-medium">{t("Pass no:")} {student.passNumber || "N/A"}</div>
+                          return (
+                            <div
+                              key={student.id}
+                              className="rounded-lg shadow border transition-all"
+                              style={{ background: cardBg }}
+                            >
+                              <div className="p-5 flex flex-col gap-3">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="w-16 h-16">
+                                    <AvatarImage src={imgUrl} alt={student.name} />
+                                    <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-semibold text-lg text-gray-900">{student.name}</div>
+                                    <div className="text-sm text-gray-600">ID: {student.id}</div>
+                                    <div className="text-sm text-blue-600 font-medium">{t("Pass no:")} {student.passNumber || "N/A"}</div>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="flex flex-col gap-1 mt-2">
-                                <div className="flex gap-2 items-center text-base">
-                                  <span className="text-gray-700 font-medium">{t("Approved Return Time (Arrival):")}</span>
-                                  <span className="text-gray-900 font-semibold">
-                                    {formatAMPM(approvedReturnTime)}
-                                  </span>
+                                <div className="flex flex-col gap-1 mt-2">
+                                  <div className="flex gap-2 items-center text-base">
+                                    <span className="text-gray-700 font-medium">{t("Approved Return Time (Arrival):")}</span>
+                                    <span className="text-gray-900 font-semibold">
+                                      {formatAMPM(approvedReturnTime)}
+                                    </span>
+                                  </div>
+                                  <div className="flex gap-2 items-center text-base">
+                                    <span className="text-gray-700 font-medium">{t("Actual Check-In Time:")}</span>
+                                    <span className="text-gray-900 font-semibold">
+                                      {formatAMPM(actualCheckInTime)}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex gap-2 items-center text-base">
-                                  <span className="text-gray-700 font-medium">{t("Actual Check-In Time:")}</span>
-                                  <span className="text-gray-900 font-semibold">
-                                    {formatAMPM(actualCheckInTime)}
-                                  </span>
+                                <div className="mt-2">
+                                  <Badge className={badgeColor}>{badgeText}</Badge>
                                 </div>
-                              </div>
-                              <div className="mt-2">
-                                <Badge className={badgeColor}>{badgeText}</Badge>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   )}
                 </CardContent>
@@ -779,3 +779,4 @@ export default function SecurityDashboard() {
     </div>
   );
 }
+
