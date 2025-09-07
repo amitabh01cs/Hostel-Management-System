@@ -1,7 +1,7 @@
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import { useEffect } from "react";
 import DashboardStats from "../components/dashboard/DashboardStats";
-import OccupancyChart from "../components/dashboard/OccupancyChart";
+import OccupancyChart from "../components/dashboard/PassAnalysisChart";
 import ActivityList from "../components/dashboard/ActivityList";
 import QuickActions from "../components/dashboard/studentDashboard/QuickActions";
 import Layout2 from "../components/layout/Layout2";
@@ -45,7 +45,7 @@ const DashboardB = () => {
 
         {/* Charts and Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <OccupancyChart />
+          <PassAnalysisChart />
           <ActivityList />
         </div>
 
