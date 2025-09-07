@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "../../components/ui/dialog";
 
 // --- TypeScript Interfaces for Data Structures ---
 
@@ -27,8 +27,6 @@ interface GatePass {
 
 interface ChartData {
   name: string;
-  Male: number;
-  Female: number;
   total: number;
 }
 
@@ -39,7 +37,7 @@ interface StudentWithPassCount extends Student {
 type GenderFilter = "total" | "Male" | "Female";
 
 // --- Backend API URL ---
-const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass";
+const backendUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
 
 const getYearName = (year: string | number): string => {
   if (!year) return "Unknown Year";
@@ -52,7 +50,7 @@ const getYearName = (year: string | number): string => {
   }
 };
 
-const PassAnalysisChart: React.FC = () => {
+const PassAnalysisChart = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [allPasses, setAllPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,9 +62,8 @@ const PassAnalysisChart: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    setError(null); // Reset error on new fetch
+    setError(null);
 
-    // Build the URL based on the active filter
     let url = backendUrl;
     if (activeFilter === "Male") {
       url += "?gender=M";
@@ -86,17 +83,17 @@ const PassAnalysisChart: React.FC = () => {
             throw new Error("API response is not an array.");
         }
 
-        setAllPasses(data); // Store the raw (potentially filtered) data
+        setAllPasses(data);
 
         const passCountsByYear = data.reduce((acc: Record<string, ChartData>, pass) => {
           const student = pass.student;
-          if (!student || !student.yearOfStudy || !student.gender) {
+          if (!student || !student.yearOfStudy) {
             return acc;
           }
 
           const yearName = getYearName(student.yearOfStudy);
           if (!acc[yearName]) {
-            acc[yearName] = { name: yearName, Male: 0, Female: 0, total: 0 };
+            acc[yearName] = { name: yearName, total: 0 };
           }
           
           acc[yearName].total++;
@@ -238,4 +235,3 @@ const PassAnalysisChart: React.FC = () => {
 };
 
 export default PassAnalysisChart;
-
