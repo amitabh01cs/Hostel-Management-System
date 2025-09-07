@@ -1,7 +1,7 @@
 import { useAdminAuth } from "../hooks/useAdminAuth";
 import { useEffect } from "react";
 import DashboardStats from "../components/dashboard/DashboardStats";
-import OccupancyChart from "../components/dashboard/PassAnalysisChart";
+import PassAnalysisChart  from "../components/dashboard/PassAnalysisChart";
 import ActivityList from "../components/dashboard/ActivityList";
 import QuickActions from "../components/dashboard/studentDashboard/QuickActions";
 import Layout2 from "../components/layout/Layout2";
