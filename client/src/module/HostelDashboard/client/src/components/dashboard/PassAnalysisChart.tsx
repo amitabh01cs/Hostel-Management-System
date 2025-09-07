@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
-import { Button } from "./ui/button";
+import { Button } from "../../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "./ui/dialog";
-import { useAdminAuth } from "../hooks/useAdminAuth"; // Import the admin auth hook
+} from "../../components/ui/dialog";
+// import { useAdminAuth } from "@/hooks/useAdminAuth"; // Import the admin auth hook
 
 // --- TypeScript Interfaces for Data Structures ---
 
@@ -58,7 +58,7 @@ const getYearName = (year: string | number): string => {
   }
 };
 
-const PassAnalysisChart: React.FC = () => {
+export const PassAnalysisChart: React.FC = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [allPasses, setAllPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -274,6 +274,4 @@ const PassAnalysisChart: React.FC = () => {
     </>
   );
 };
-
-export default PassAnalysisChart;
 
