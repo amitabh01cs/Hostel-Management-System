@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useAdminAuth } from "../hooks/useAdminAuth"; // Import the admin auth hook
+import { useAdminAuth } from "@/hooks/useAdminAuth"; // Import the admin auth hook
 
 // --- TypeScript Interfaces for Data Structures ---
 
@@ -58,7 +58,7 @@ const getYearName = (year: string | number): string => {
   }
 };
 
-const PassAnalysisChart: React.FC = () => {
+export const PassAnalysisChart: React.FC = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [allPasses, setAllPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -274,6 +274,4 @@ const PassAnalysisChart: React.FC = () => {
     </>
   );
 };
-
-export default PassAnalysisChart;
 
