@@ -32,7 +32,7 @@ interface PieChartData {
 }
 
 // --- API Endpoints ---
-const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
+const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/filtered-list";
 const passesUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
 // UPDATED: Using the new, more efficient endpoint for currently out students
 const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/currently-out";
