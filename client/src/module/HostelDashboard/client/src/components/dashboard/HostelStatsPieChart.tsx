@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../components/ui/dialog";
-import { useAdminAuth } from "../../hooks/useAdminAuth";
+import { useAdminAuth } from "../hooks/useAdminAuth";
 
 // --- TypeScript Interfaces ---
 interface Student {
@@ -32,7 +32,7 @@ interface PieChartData {
 }
 
 // --- API Endpoints ---
-const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/filtered-list";
+const studentsUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/student/all";
 const passesUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/gate-pass/all";
 const currentlyOutUrl = "https://hostel-backend-module-production-iist.up.railway.app/api/security/completed-logs";
 
@@ -198,7 +198,7 @@ const HostelStatsPieChart = () => {
             ))}
           </Pie>
           <Tooltip formatter={(value) => [value, 'Students']} />
-          <Legend />
+          <Legend formatter={(value, entry) => `${value}: ${entry.payload.value}`} />
         </PieChart>
       </ResponsiveContainer>
     );
