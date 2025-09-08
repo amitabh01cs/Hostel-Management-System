@@ -366,40 +366,64 @@ const TakeAttendance = () => {
     XLSX.writeFile(workbook, fileName);
   };
   
-  // New function to handle the summarized Excel download for date range
-  const handleDownloadRangeSummary = () => {
-    // Group attendance records by student using their roll number
-    const studentSummary = filteredRangeAttendance.reduce((acc, record) => {
-      const key = record.rollNo; // Unique identifier for a student
-      if (!acc[key]) {
-        acc[key] = {
-          name: record.name,
-          rollNo: record.rollNo,
-          roomNo: record.roomNo,
-          course: record.course,
-          year: record.year,
-          totalPresent: 0,
+  // New function to handle matrix-style Excel report
+  const handleDownloadMatrixReport = () => {
+    if (filteredRangeAttendance.length === 0) {
+        toast({
+            title: "No Data",
+            description: "No attendance data to download for the selected range.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    // Step 1: Get all unique dates from the range and sort them
+    const allDates = [...new Set(filteredRangeAttendance.map(r => r.date as string))].sort();
+
+    // Step 2: Group records by student to easily access their daily status
+    const studentsDataMap = filteredRangeAttendance.reduce((acc, record) => {
+        const key = record.rollNo;
+        if (!acc[key]) {
+            acc[key] = {
+                "Roll No": record.rollNo,
+                "Student Name": record.name,
+                attendanceByDate: {} as Record<string, 'P' | 'A'>,
+            };
+        }
+        // Use 'P' for present, 'A' for absent for a cleaner report
+        acc[key].attendanceByDate[record.date as string] = (record.status || '').toLowerCase() === 'present' ? 'P' : 'A';
+        return acc;
+    }, {} as Record<string, { "Roll No": string; "Student Name": string; attendanceByDate: Record<string, 'P' | 'A'> }>);
+
+    // Step 3: Create the final "wide" format for the Excel sheet
+    const excelData = Object.values(studentsDataMap).map((student) => {
+        const row: { [key: string]: any } = {
+            "Roll No": student["Roll No"],
+            "Student Name": student["Student Name"],
         };
-      }
-      // Increment present count if status is 'present'
-      if ((record.status || '').toLowerCase() === 'present') {
-        acc[key].totalPresent += 1;
-      }
-      return acc;
-    }, {} as Record<string, { name: string; rollNo: string; roomNo: string; course: string; year: string; totalPresent: number }>);
 
-    // Convert the grouped data into an array for the Excel sheet
-    const excelData = Object.values(studentSummary).map((student, index) => ({
-        "Sr No.": index + 1,
-        "Student Name": student.name,
-        "Email": student.rollNo,
-        "Room": student.roomNo || "-",
-        "Course": student.course,
-        "Year": student.year,
-        "Total Present": student.totalPresent,
-      }));
+        let totalPresent = 0;
+        let totalAbsent = 0;
 
-    handleDownloadExcel(excelData, `attendance_summary_${rangeFrom}_to_${rangeTo}.xlsx`);
+        // Add columns for each date dynamically
+        allDates.forEach(date => {
+            const status = student.attendanceByDate[date] || '-'; // Use '-' if no record for that day
+            row[date] = status;
+            if (status === 'P') {
+                totalPresent++;
+            } else if (status === 'A') {
+                totalAbsent++;
+            }
+        });
+
+        // Add the total count columns at the end
+        row["Total Present"] = totalPresent;
+        row["Total Absent"] = totalAbsent;
+
+        return row;
+    });
+
+    handleDownloadExcel(excelData, `attendance_report_${rangeFrom}_to_${rangeTo}.xlsx`);
   };
 
 
@@ -472,8 +496,8 @@ const TakeAttendance = () => {
         ];
 
   const getExcelData = () => {
-    // This function is now mainly for the single day view or the raw data view.
-    // The range summary has its own dedicated download handler.
+    // This function is for single-day reports or raw data.
+    // The matrix report has its own dedicated handler now.
     if (showView) {
       return filteredAttendance.map((s: any, i: number) => ({
         "Sr No.": i + 1,
@@ -585,7 +609,7 @@ const TakeAttendance = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={handleDownloadRangeSummary} // Using the new summary download function
+              onClick={handleDownloadMatrixReport} // Using the new matrix report download function
               disabled={loadingTable || filteredRangeAttendance.length === 0}
             >
               <Download className="mr-2 h-4 w-4" />
