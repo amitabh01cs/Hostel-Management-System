@@ -144,8 +144,6 @@ const TakeAttendance = () => {
   useEffect(() => {
     if (showView && admin) {
       setLoadingTable(true);
-
-      // Function to fetch attendance by date
       const fetchAttendanceByDate = async (dateStr: string) => {
         let url = `${BASE_API_URL}/api/attendance/date?date=${dateStr}`;
         if (genderParam) url += `&gender=${genderParam}`;
@@ -155,14 +153,10 @@ const TakeAttendance = () => {
         return data;
       };
 
-      // Main async logic
       (async () => {
-        // Pehle aaj ki attendance fetch karo
         const todayStr = getLocalDateString();
         let data = await fetchAttendanceByDate(todayStr);
-
         if (data.length === 0) {
-          // Agar aaj ki attendance nahi to kal ki try karo
           const yesterday = new Date(
             new Date(todayStr).getTime() - 24 * 60 * 60 * 1000
           );
@@ -170,14 +164,11 @@ const TakeAttendance = () => {
           const mm = String(yesterday.getMonth() + 1).padStart(2, "0");
           const dd = String(yesterday.getDate()).padStart(2, "0");
           const yesterdayStr = `${yyyy}-${mm}-${dd}`;
-
           data = await fetchAttendanceByDate(yesterdayStr);
-          setSelectedDate(yesterdayStr); // Kal ki date set karo
+          setSelectedDate(yesterdayStr);
         } else {
-          setSelectedDate(todayStr); // Aaj ki default date set rakho
+          setSelectedDate(todayStr);
         }
-
-        // Set attendance with converted year labels
         setAttendance(
           data.map((s: any) => ({
             ...s,
@@ -297,7 +288,6 @@ const TakeAttendance = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Validate attendance marked for all students
     const unmarkedStudents = filteredStudents.filter((s) => s.attendance === null);
     if (unmarkedStudents.length > 0) {
       toast({
@@ -308,7 +298,6 @@ const TakeAttendance = () => {
       setIsSubmitting(false);
       return;
     }
-    // Validate status values
     const invalidStatusStudents = filteredStudents.filter(
       (s) => s.attendance !== "present" && s.attendance !== "absent"
     );
@@ -376,6 +365,43 @@ const TakeAttendance = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
     XLSX.writeFile(workbook, fileName);
   };
+  
+  // New function to handle the summarized Excel download for date range
+  const handleDownloadRangeSummary = () => {
+    // Group attendance records by student using their roll number
+    const studentSummary = filteredRangeAttendance.reduce((acc, record) => {
+      const key = record.rollNo; // Unique identifier for a student
+      if (!acc[key]) {
+        acc[key] = {
+          name: record.name,
+          rollNo: record.rollNo,
+          roomNo: record.roomNo,
+          course: record.course,
+          year: record.year,
+          totalPresent: 0,
+        };
+      }
+      // Increment present count if status is 'present'
+      if ((record.status || '').toLowerCase() === 'present') {
+        acc[key].totalPresent += 1;
+      }
+      return acc;
+    }, {} as Record<string, { name: string; rollNo: string; roomNo: string; course: string; year: string; totalPresent: number }>);
+
+    // Convert the grouped data into an array for the Excel sheet
+    const excelData = Object.values(studentSummary).map((student, index) => ({
+        "Sr No.": index + 1,
+        "Student Name": student.name,
+        "Email": student.rollNo,
+        "Room": student.roomNo || "-",
+        "Course": student.course,
+        "Year": student.year,
+        "Total Present": student.totalPresent,
+      }));
+
+    handleDownloadExcel(excelData, `attendance_summary_${rangeFrom}_to_${rangeTo}.xlsx`);
+  };
+
 
   const columns =
     showView || showRange
@@ -446,18 +472,8 @@ const TakeAttendance = () => {
         ];
 
   const getExcelData = () => {
-    if (showRange) {
-      return filteredRangeAttendance.map((s: any, i: number) => ({
-        "Sr No.": i + 1,
-        "Student Name": s.name,
-        Email: s.rollNo,
-        Room: s.roomNo,
-        Course: s.course,
-        Year: s.year,
-        Date: s.date,
-        Status: s.status || "Not Marked",
-      }));
-    }
+    // This function is now mainly for the single day view or the raw data view.
+    // The range summary has its own dedicated download handler.
     if (showView) {
       return filteredAttendance.map((s: any, i: number) => ({
         "Sr No.": i + 1,
@@ -477,7 +493,7 @@ const TakeAttendance = () => {
       Room: s.roomNo,
       Course: s.course,
       Year: s.year,
-      Date: s.date,
+      Date: getLocalDateString(),
       Attendance: s.attendance || "Not Marked",
     }));
   };
@@ -509,7 +525,7 @@ const TakeAttendance = () => {
           {!showView && !showRange && (
             <input
               type="date"
-              className="w-[200px]"
+              className="w-[200px] p-2 border rounded-md"
               value={getLocalDateString()}
               disabled
               readOnly
@@ -538,7 +554,7 @@ const TakeAttendance = () => {
           </Button>
         </div>
         {showRange && (
-          <div className="flex gap-4 mb-4 items-center">
+          <div className="flex gap-4 mb-4 items-center flex-wrap">
             <Button
               variant="outline"
               onClick={() => {
@@ -552,12 +568,14 @@ const TakeAttendance = () => {
             <label>From:</label>
             <input
               type="date"
+              className="p-2 border rounded-md"
               value={rangeFrom}
               onChange={(e) => setRangeFrom(e.target.value)}
             />
             <label>To:</label>
             <input
               type="date"
+              className="p-2 border rounded-md"
               value={rangeTo}
               onChange={(e) => setRangeTo(e.target.value)}
             />
@@ -567,13 +585,8 @@ const TakeAttendance = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() =>
-                handleDownloadExcel(
-                  getExcelData(),
-                  `attendance_range_${rangeFrom}_to_${rangeTo}.xlsx`
-                )
-              }
-              disabled={loadingTable}
+              onClick={handleDownloadRangeSummary} // Using the new summary download function
+              disabled={loadingTable || filteredRangeAttendance.length === 0}
             >
               <Download className="mr-2 h-4 w-4" />
               Download Excel
@@ -587,7 +600,7 @@ const TakeAttendance = () => {
                 Attendance from {rangeFrom} to {rangeTo}
               </CardTitle>
               <CardDescription>
-                Total: {filteredRangeAttendance.length} | Present:{" "}
+                Total Records: {filteredRangeAttendance.length} | Present:{" "}
                 {presentCountRange} | Absent: {absentCountRange}
               </CardDescription>
             </CardHeader>
@@ -691,15 +704,15 @@ const TakeAttendance = () => {
               <label className="font-medium ml-2">Select Date:</label>
               <input
                 type="date"
+                className="p-2 border rounded-md"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                style={{ minWidth: 150, padding: 4 }}
               />
               <label className="font-medium ml-4">Status:</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ minWidth: 100, padding: 4 }}
+                className="p-2 border rounded-md"
               >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
