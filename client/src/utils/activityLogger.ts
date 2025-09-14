@@ -1,18 +1,20 @@
-export type ActivityLogPayload = {
-  userId: string;
-  userEmail: string;
-  userType: string;
-  actionType: string; // "VISIT" | "CLICK" | "ERROR"
-  pageUrl: string;
-  actionDescription?: string;
-};
+import axios from "axios";
 
-export async function logUserActivity(payload: ActivityLogPayload) {
-  try {
-    await fetch("https://hostel-backend-module-production-iist.up.railway.app/api/activity-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch {}
+export interface UserActivityPayload {
+  userId: string;
+  actionType: string;
+  pageUrl: string;
+  actionDescription: string;
+  timestamp?: string;
 }
+
+export const logUserActivity = async (activity: UserActivityPayload) => {
+  try {
+    await axios.post("https://hostel-backend-module-production-iist.up.railway.app/api/track", {
+      ...activity,
+      timestamp: activity.timestamp || new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Failed to log user activity", error);
+  }
+};
