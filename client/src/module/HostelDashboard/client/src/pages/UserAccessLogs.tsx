@@ -19,21 +19,13 @@ import { logUserActivity } from "../../../../../../src/utils/activityLogger";
 
 type AccessLog = {
   id: number;
-  user_id: string;
-  user_email: string;
-  user_type: string;
-  ip_address: string;
-  login_time: string;
-  logout_time: string | null;
+  studentId: string;  // CHANGE: userId se studentId hona chahiye
+  userEmail: string;
+  userType: string;
+  ipAddress: string;
+  loginTime: string;
+  logoutTime: string | null;
   status: string;
-};
-
-type Activity = {
-  id: number;
-  pageUrl: string;
-  actionType: string;
-  actionDescription: string;
-  timestamp: string;
 };
 
 const UserAccessLogs = () => {
@@ -45,17 +37,14 @@ const UserAccessLogs = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState(""); // CHANGE here
+  const [activities, setActivities] = useState<any[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const { toast } = useToast();
 
-  // Logged-in user ka unique id lena (studentId, adminId ya securityId)
-  const user = getCurrentUser();
-  const loggedInUserId =
-    user?.studentId || user?.adminId || user?.securityId || "";
-
   useEffect(() => {
+    const user = getCurrentUser();
     if (user) {
       logUserActivity({
         ...user,
@@ -73,12 +62,12 @@ const UserAccessLogs = () => {
       .then((data) => {
         const logs = (Array.isArray(data) ? data : data.logs).map((log: any) => ({
           id: log.id,
-          user_id: log.user_id,
-          user_email: log.user_email,
-          user_type: log.user_type,
-          ip_address: log.ip_address,
-          login_time: log.login_time,
-          logout_time: log.logout_time,
+          studentId: log.user_id,  // CHANGE: server se aaya field (agar user_id use ho raha ho toh)
+          userEmail: log.user_email,
+          userType: log.user_type,
+          ipAddress: log.ip_address,
+          loginTime: log.login_time,
+          logoutTime: log.logout_time,
           status: log.status,
         }));
         setAccessLogs(logs);
@@ -94,20 +83,12 @@ const UserAccessLogs = () => {
       });
   }, []);
 
-  const openActivityModal = () => {
-    if (!loggedInUserId) {
-      toast({
-        title: "Error",
-        description: "User not logged in",
-        variant: "destructive",
-      });
-      return;
-    }
+  const openActivityModal = (studentId: string) => {
+    setSelectedStudentId(studentId);
     setActivityModalOpen(true);
     setActivitiesLoading(true);
-
     fetch(
-      `https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${loggedInUserId}`
+      `https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${studentId}`
     )
       .then((res) => res.json())
       .then((data) => {
@@ -142,6 +123,7 @@ const UserAccessLogs = () => {
           title: "Logs Cleared",
           description: "Access logs have been successfully cleared.",
         });
+        const user = getCurrentUser();
         if (user) {
           logUserActivity({
             ...user,
@@ -161,34 +143,15 @@ const UserAccessLogs = () => {
   };
 
   const columns = [
+    { accessorKey: "id", header: "Sr No." },
+    { accessorKey: "studentId", header: "Student ID" },  // Change header label if needed
+    { accessorKey: "userEmail", header: "User Email" },
+    { accessorKey: "userType", header: "User Type" },
+    { accessorKey: "ipAddress", header: "IP Address" },
     {
-      header: "Sr No.",
-      cell: ({ row }: any) => row.index + 1,
-    },
-    {
-      accessorKey: "id",
-      header: "ID",
-    },
-    {
-      accessorKey: "user_id",
-      header: "User ID",
-    },
-    {
-      accessorKey: "user_email",
-      header: "User Email",
-    },
-    {
-      accessorKey: "user_type",
-      header: "User Type",
-    },
-    {
-      accessorKey: "ip_address",
-      header: "IP Address",
-    },
-    {
-      accessorKey: "login_time",
+      accessorKey: "loginTime",
       header: "Login Time",
-      cell: ({ row }: any) => formatDateTime(row.getValue("login_time") as string),
+      cell: ({ row }: any) => formatDateTime(row.getValue("loginTime") as string),
     },
     {
       accessorKey: "status",
@@ -201,8 +164,10 @@ const UserAccessLogs = () => {
     },
     {
       header: "Actions",
-      cell: () => (
-        <Button onClick={openActivityModal}>View Activity</Button>
+      cell: ({ row }: any) => (
+        <Button onClick={() => openActivityModal(row.original.studentId)}>
+          View Activity
+        </Button>
       ),
     },
   ];
@@ -243,13 +208,14 @@ const UserAccessLogs = () => {
             <DataTable
               columns={columns}
               data={accessLogs}
-              searchColumn="user_email"
+              searchColumn="userEmail"
               searchPlaceholder="Search by user email..."
               loading={loading}
             />
           </CardContent>
         </Card>
 
+        {/* Modal */}
         {activityModalOpen && (
           <div
             style={{
@@ -291,6 +257,7 @@ const UserAccessLogs = () => {
           </div>
         )}
 
+        {/* Confirm Clear Logs Dialog */}
         {isConfirmOpen && (
           <div
             style={{
