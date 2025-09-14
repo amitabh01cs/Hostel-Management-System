@@ -19,13 +19,21 @@ import { logUserActivity } from "../../../../../../src/utils/activityLogger";
 
 type AccessLog = {
   id: number;
-  studentId: string;  // CHANGE: userId se studentId hona chahiye
+  studentId: string;
   userEmail: string;
   userType: string;
   ipAddress: string;
   loginTime: string;
   logoutTime: string | null;
   status: string;
+};
+
+type Activity = {
+  id: number;
+  pageUrl: string;
+  actionType: string;
+  actionDescription: string;
+  timestamp: string;
 };
 
 const UserAccessLogs = () => {
@@ -37,14 +45,17 @@ const UserAccessLogs = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState(""); // CHANGE here
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const { toast } = useToast();
 
+  // Get logged-in userId (studentId / adminId / securityId)
+  const user = getCurrentUser();
+  const loggedInUserId =
+    user?.studentId || user?.adminId || user?.securityId || "";
+
   useEffect(() => {
-    const user = getCurrentUser();
     if (user) {
       logUserActivity({
         ...user,
@@ -62,7 +73,7 @@ const UserAccessLogs = () => {
       .then((data) => {
         const logs = (Array.isArray(data) ? data : data.logs).map((log: any) => ({
           id: log.id,
-          studentId: log.user_id,  // CHANGE: server se aaya field (agar user_id use ho raha ho toh)
+          studentId: log.user_id,
           userEmail: log.user_email,
           userType: log.user_type,
           ipAddress: log.ip_address,
@@ -83,12 +94,21 @@ const UserAccessLogs = () => {
       });
   }, []);
 
-  const openActivityModal = (studentId: string) => {
-    setSelectedStudentId(studentId);
+  const openActivityModal = () => {
+    if (!loggedInUserId) {
+      toast({
+        title: "Error",
+        description: "User not logged in",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setActivityModalOpen(true);
     setActivitiesLoading(true);
+
     fetch(
-      `https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${studentId}`
+      `https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${loggedInUserId}`
     )
       .then((res) => res.json())
       .then((data) => {
@@ -123,7 +143,6 @@ const UserAccessLogs = () => {
           title: "Logs Cleared",
           description: "Access logs have been successfully cleared.",
         });
-        const user = getCurrentUser();
         if (user) {
           logUserActivity({
             ...user,
@@ -144,7 +163,7 @@ const UserAccessLogs = () => {
 
   const columns = [
     { accessorKey: "id", header: "Sr No." },
-    { accessorKey: "studentId", header: "Student ID" },  // Change header label if needed
+    { accessorKey: "studentId", header: "Student ID" },
     { accessorKey: "userEmail", header: "User Email" },
     { accessorKey: "userType", header: "User Type" },
     { accessorKey: "ipAddress", header: "IP Address" },
@@ -164,10 +183,8 @@ const UserAccessLogs = () => {
     },
     {
       header: "Actions",
-      cell: ({ row }: any) => (
-        <Button onClick={() => openActivityModal(row.original.studentId)}>
-          View Activity
-        </Button>
+      cell: () => (
+        <Button onClick={openActivityModal}>View Activity</Button> // Fixed logged-in user
       ),
     },
   ];
