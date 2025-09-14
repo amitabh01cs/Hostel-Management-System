@@ -1,3 +1,4 @@
+import React, { Fragment } from "react";
 import { Switch, Route, Router } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,11 +27,9 @@ import TakeAttendance from "@/module/HostelDashboard/client/src/pages/TakeAttend
 import RequestLeave from "@/module/HostelDashboard/client/src/pages/RequestLeave";
 import ComplaintBox from "@/module/HostelDashboard/client/src/pages/ComplaintBox";
 import UserAccessLogs from "@/module/HostelDashboard/client/src/pages/UserAccessLogs";
-import "@/module/HostelDashboard/client/src/index.css";
 
 // Register Student
 import Index from "@/module/RegisterStudent/src/pages/Index";
-import "@/module/RegisterStudent/src/index.css";
 
 // Hostel Student Portal
 import Dashboard from "@/module/HostelStudentPortal/client/src/pages/Dashboard";
@@ -39,11 +38,9 @@ import LeaveStatus from "@/module/HostelStudentPortal/client/src/pages/LeaveStat
 import ComplaintBoxS from "@/module/HostelStudentPortal/client/src/pages/ComplaintBox";
 import AntiRagging from "@/module/HostelStudentPortal/client/src/pages/AntiRagging";
 import ChangePassword from "@/module/HostelStudentPortal/client/src/pages/ChangePassword";
-import "@/module/HostelStudentPortal/client/src/index.css";
 
 // Room Manager
 import HostelRoomManagement from "@/module/RoomManager/client/src/pages/HostelRoomManagement";
-import "@/module/RoomManager/client/src/index.css";
 
 // Security Dashboard
 import SecurityDashboard from "@/module/SecurityDashboard/client/src/pages/security-dashboard";
@@ -58,10 +55,13 @@ import SuperAdminAdminComplaints from "@/module/HostelDashboard/client/src/pages
 import SuperAdminEmergencyReports from "@/module/HostelDashboard/client/src/pages/SuperAdminEmergencyReports";
 import SuperAdminMedicalHistory from "@/module/HostelDashboard/client/src/pages/SuperAdminMedicalHistory";
 
-// Global CSS
+// Import CSS
+import "@/module/HostelDashboard/client/src/index.css";
+import "@/module/RegisterStudent/src/index.css";
+import "@/module/HostelStudentPortal/client/src/index.css";
+import "@/module/RoomManager/client/src/index.css";
 import "@/index.css";
 
-// Sare routes ek component me
 function MyRoutes() {
   return (
     <Switch>
@@ -99,15 +99,14 @@ function MyRoutes() {
   );
 }
 
-// Logger ko ek wrapper me daal do taki wo Router ke andar hi chale
+// Wrapper to call page logger hook inside router
 function PageLoggerWrapper({ user }) {
   usePageLogger(user);
-  return null;
+  return <Fragment />;
 }
 
 function App() {
   const user = getCurrentUser();
-
   return (
     <Router>
       <TooltipProvider>
