@@ -19,21 +19,13 @@ import { logUserActivity } from "../../../../../../src/utils/activityLogger";
 
 type AccessLog = {
   id: number;
-  userId: string;
+  studentId: string;  // CHANGE: userId se studentId hona chahiye
   userEmail: string;
   userType: string;
   ipAddress: string;
   loginTime: string;
   logoutTime: string | null;
   status: string;
-};
-
-type Activity = {
-  id: number;
-  pageUrl: string;
-  actionType: string;
-  actionDescription: string;
-  timestamp: string;
 };
 
 const UserAccessLogs = () => {
@@ -45,8 +37,8 @@ const UserAccessLogs = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState(""); // CHANGE here
+  const [activities, setActivities] = useState<any[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const { toast } = useToast();
@@ -70,7 +62,7 @@ const UserAccessLogs = () => {
       .then((data) => {
         const logs = (Array.isArray(data) ? data : data.logs).map((log: any) => ({
           id: log.id,
-          userId: log.user_id,
+          studentId: log.user_id,  // CHANGE: server se aaya field (agar user_id use ho raha ho toh)
           userEmail: log.user_email,
           userType: log.user_type,
           ipAddress: log.ip_address,
@@ -91,12 +83,13 @@ const UserAccessLogs = () => {
       });
   }, []);
 
-  // Fetch selected user activities
-  const openActivityModal = (userId: string) => {
-    setSelectedUserId(userId);
+  const openActivityModal = (studentId: string) => {
+    setSelectedStudentId(studentId);
     setActivityModalOpen(true);
     setActivitiesLoading(true);
-    fetch(`https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${userId}`)
+    fetch(
+      `https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${studentId}`
+    )
       .then((res) => res.json())
       .then((data) => {
         setActivities(data);
@@ -151,7 +144,7 @@ const UserAccessLogs = () => {
 
   const columns = [
     { accessorKey: "id", header: "Sr No." },
-    { accessorKey: "userId", header: "User ID" },
+    { accessorKey: "studentId", header: "Student ID" },  // Change header label if needed
     { accessorKey: "userEmail", header: "User Email" },
     { accessorKey: "userType", header: "User Type" },
     { accessorKey: "ipAddress", header: "IP Address" },
@@ -172,7 +165,9 @@ const UserAccessLogs = () => {
     {
       header: "Actions",
       cell: ({ row }: any) => (
-        <Button onClick={() => openActivityModal(row.original.userId)}>View Activity</Button>
+        <Button onClick={() => openActivityModal(row.original.studentId)}>
+          View Activity
+        </Button>
       ),
     },
   ];
@@ -220,7 +215,7 @@ const UserAccessLogs = () => {
           </CardContent>
         </Card>
 
-        {/* User Activity Modal */}
+        {/* Modal */}
         {activityModalOpen && (
           <div
             style={{
