@@ -10,7 +10,7 @@ import { formatDateTime, getStatusColor } from "../lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser } from "../../../../../../src/getUser";
 import { logUserActivity } from "../../../../../../src/utils/activityLogger";
-import UserActivityDetailsModal from "./UserActivityDetailsModal";
+import UserActivityDetailsModal from "../components/UserActivityDetailsModal";
 
 type AccessLog = {
   id: number;
