@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "../components/ui/data-table";
 import Layout2 from "../components/layout/Layout2";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -10,7 +16,6 @@ import { formatDateTime, getStatusColor } from "../lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser } from "../../../../../../src/getUser";
 import { logUserActivity } from "../../../../../../src/utils/activityLogger";
-import UserActivityDetailsModal from "../components/UserActivityDetailsModal";
 
 type AccessLog = {
   id: number;
@@ -23,17 +28,29 @@ type AccessLog = {
   status: string;
 };
 
+type Activity = {
+  id: number;
+  pageUrl: string;
+  actionType: string;
+  actionDescription: string;
+  timestamp: string;
+};
+
 const UserAccessLogs = () => {
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const { toast } = useToast();
 
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
-  // Log page visit
+  const { toast } = useToast();
+
   useEffect(() => {
     const user = getCurrentUser();
     if (user) {
@@ -74,9 +91,35 @@ const UserAccessLogs = () => {
       });
   }, []);
 
-  // Clear logs via backend API
+  // Fetch selected user activities
+  const openActivityModal = (userId: string) => {
+    setSelectedUserId(userId);
+    setActivityModalOpen(true);
+    setActivitiesLoading(true);
+    fetch(`https://hostel-backend-module-production-iist.up.railway.app/api/user-activities/${userId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setActivities(data);
+        setActivitiesLoading(false);
+      })
+      .catch(() => {
+        setActivities([]);
+        setActivitiesLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to load user activities.",
+          variant: "destructive",
+        });
+      });
+  };
+
+  const closeActivityModal = () => {
+    setActivityModalOpen(false);
+    setActivities([]);
+  };
+
   const handleClearLogs = () => {
-    setIsAlertDialogOpen(false);
+    setIsConfirmOpen(false);
     fetch("https://hostel-backend-module-production-iist.up.railway.app/api/access-log", {
       method: "DELETE",
     })
@@ -87,7 +130,6 @@ const UserAccessLogs = () => {
           title: "Logs Cleared",
           description: "Access logs have been successfully cleared.",
         });
-
         const user = getCurrentUser();
         if (user) {
           logUserActivity({
@@ -107,49 +149,25 @@ const UserAccessLogs = () => {
       });
   };
 
-  const openActivityModal = (userId: string) => {
-    setSelectedUserId(userId);
-    setActivityModalOpen(true);
-  };
-
-  const closeActivityModal = () => setActivityModalOpen(false);
-
   const columns = [
-    {
-      accessorKey: "id",
-      header: "Sr No.",
-    },
-    {
-      accessorKey: "userId",
-      header: "User ID",
-    },
-    {
-      accessorKey: "userEmail",
-      header: "User Email",
-    },
-    {
-      accessorKey: "userType",
-      header: "User Type",
-    },
-    {
-      accessorKey: "ipAddress",
-      header: "IP Address",
-    },
+    { accessorKey: "id", header: "Sr No." },
+    { accessorKey: "userId", header: "User ID" },
+    { accessorKey: "userEmail", header: "User Email" },
+    { accessorKey: "userType", header: "User Type" },
+    { accessorKey: "ipAddress", header: "IP Address" },
     {
       accessorKey: "loginTime",
       header: "Login Time",
-      cell: ({ row }: any) => {
-        const date = row.getValue("loginTime") as string;
-        return formatDateTime(date);
-      },
+      cell: ({ row }: any) => formatDateTime(row.getValue("loginTime") as string),
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }: any) => {
-        const status = row.getValue("status") as string;
-        return <Badge className={getStatusColor(status)}>{status}</Badge>;
-      },
+      cell: ({ row }: any) => (
+        <Badge className={getStatusColor(row.getValue("status") as string)}>
+          {row.getValue("status")}
+        </Badge>
+      ),
     },
     {
       header: "Actions",
@@ -182,7 +200,7 @@ const UserAccessLogs = () => {
                 />
                 <Button
                   variant="destructive"
-                  onClick={() => setIsAlertDialogOpen(true)}
+                  onClick={() => setIsConfirmOpen(true)}
                   disabled={accessLogs.length === 0}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -202,35 +220,81 @@ const UserAccessLogs = () => {
           </CardContent>
         </Card>
 
-        <UserActivityDetailsModal
-          userId={selectedUserId}
-          open={activityModalOpen}
-          onClose={closeActivityModal}
-        />
+        {/* User Activity Modal */}
+        {activityModalOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}
+            onClick={closeActivityModal}
+          >
+            <div
+              style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                width: "80%",
+                maxWidth: "600px",
+                maxHeight: "70vh",
+                overflowY: "auto",
+                padding: "20px",
+                boxSizing: "border-box",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>User Activity Details</h3>
+              {activitiesLoading && <p>Loading...</p>}
+              {!activitiesLoading && activities.length === 0 && <p>No activities found.</p>}
+              <ul>
+                {activities.map((act) => (
+                  <li key={act.id}>
+                    <strong>{new Date(act.timestamp).toLocaleString()}</strong> | {act.pageUrl} | {act.actionType} | {act.actionDescription}
+                  </li>
+                ))}
+              </ul>
+              <Button onClick={closeActivityModal}>Close</Button>
+            </div>
+          </div>
+        )}
 
-        {/* AlertDialog code as in your original file */}
-
-         <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to clear the logs?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all
-                user access logs from the system.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleClearLogs}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Clear Logs
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        
+        {/* Confirm Clear Logs Dialog */}
+        {isConfirmOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}
+            onClick={() => setIsConfirmOpen(false)}
+          >
+            <div
+              style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                width: "300px",
+                padding: "20px",
+                boxSizing: "border-box",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>Are you sure you want to clear the logs?</h3>
+              <p>This action cannot be undone. This will permanently delete all user access logs from the system.</p>
+              <div style={{ marginTop: "1rem", textAlign: "right" }}>
+                <Button onClick={() => setIsConfirmOpen(false)} style={{ marginRight: "8px" }}>Cancel</Button>
+                <Button variant="destructive" onClick={handleClearLogs}>Clear Logs</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout2>
   );
