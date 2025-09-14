@@ -19,12 +19,12 @@ import { logUserActivity } from "../../../../../../src/utils/activityLogger";
 
 type AccessLog = {
   id: number;
-  studentId: string;
-  userEmail: string;
-  userType: string;
-  ipAddress: string;
-  loginTime: string;
-  logoutTime: string | null;
+  user_id: string;
+  user_email: string;
+  user_type: string;
+  ip_address: string;
+  login_time: string;
+  logout_time: string | null;
   status: string;
 };
 
@@ -43,13 +43,14 @@ const UserAccessLogs = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const { toast } = useToast();
 
-  // Get logged-in user's unique id (studentId, adminId, securityId)
+  // Logged-in user ka unique id lena (studentId, adminId ya securityId)
   const user = getCurrentUser();
   const loggedInUserId =
     user?.studentId || user?.adminId || user?.securityId || "";
@@ -72,12 +73,12 @@ const UserAccessLogs = () => {
       .then((data) => {
         const logs = (Array.isArray(data) ? data : data.logs).map((log: any) => ({
           id: log.id,
-          studentId: log.user_id,
-          userEmail: log.user_email,
-          userType: log.user_type,
-          ipAddress: log.ip_address,
-          loginTime: log.login_time,
-          logoutTime: log.logout_time,
+          user_id: log.user_id,
+          user_email: log.user_email,
+          user_type: log.user_type,
+          ip_address: log.ip_address,
+          login_time: log.login_time,
+          logout_time: log.logout_time,
           status: log.status,
         }));
         setAccessLogs(logs);
@@ -102,7 +103,6 @@ const UserAccessLogs = () => {
       });
       return;
     }
-
     setActivityModalOpen(true);
     setActivitiesLoading(true);
 
@@ -161,15 +161,34 @@ const UserAccessLogs = () => {
   };
 
   const columns = [
-    { accessorKey: "id", header: "Sr No." },
-    { accessorKey: "studentId", header: "Student ID" },
-    { accessorKey: "userEmail", header: "User Email" },
-    { accessorKey: "userType", header: "User Type" },
-    { accessorKey: "ipAddress", header: "IP Address" },
     {
-      accessorKey: "loginTime",
+      header: "Sr No.",
+      cell: ({ row }: any) => row.index + 1,
+    },
+    {
+      accessorKey: "id",
+      header: "ID",
+    },
+    {
+      accessorKey: "user_id",
+      header: "User ID",
+    },
+    {
+      accessorKey: "user_email",
+      header: "User Email",
+    },
+    {
+      accessorKey: "user_type",
+      header: "User Type",
+    },
+    {
+      accessorKey: "ip_address",
+      header: "IP Address",
+    },
+    {
+      accessorKey: "login_time",
       header: "Login Time",
-      cell: ({ row }: any) => formatDateTime(row.getValue("loginTime") as string),
+      cell: ({ row }: any) => formatDateTime(row.getValue("login_time") as string),
     },
     {
       accessorKey: "status",
@@ -183,7 +202,7 @@ const UserAccessLogs = () => {
     {
       header: "Actions",
       cell: () => (
-        <Button onClick={openActivityModal}>View Activity</Button> // fixed logged-in user
+        <Button onClick={openActivityModal}>View Activity</Button>
       ),
     },
   ];
@@ -224,12 +243,13 @@ const UserAccessLogs = () => {
             <DataTable
               columns={columns}
               data={accessLogs}
-              searchColumn="userEmail"
+              searchColumn="user_email"
               searchPlaceholder="Search by user email..."
               loading={loading}
             />
           </CardContent>
         </Card>
+
         {activityModalOpen && (
           <div
             style={{
@@ -270,6 +290,7 @@ const UserAccessLogs = () => {
             </div>
           </div>
         )}
+
         {isConfirmOpen && (
           <div
             style={{
@@ -296,9 +317,7 @@ const UserAccessLogs = () => {
               <h3>Are you sure you want to clear the logs?</h3>
               <p>This action cannot be undone. This will permanently delete all user access logs from the system.</p>
               <div style={{ marginTop: "1rem", textAlign: "right" }}>
-                <Button onClick={() => setIsConfirmOpen(false)} style={{ marginRight: "8px" }}>
-                  Cancel
-                </Button>
+                <Button onClick={() => setIsConfirmOpen(false)} style={{ marginRight: "8px" }}>Cancel</Button>
                 <Button variant="destructive" onClick={handleClearLogs}>Clear Logs</Button>
               </div>
             </div>
