@@ -1,31 +1,16 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "../components/ui/data-table";
 import Layout2 from "../components/layout/Layout2";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
 import { formatDateTime, getStatusColor } from "../lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser } from "../../../../../../src/getUser";
 import { logUserActivity } from "../../../../../../src/utils/activityLogger";
+import UserActivityDetailsModal from "./UserActivityDetailsModal";
 
 type AccessLog = {
   id: number;
@@ -39,13 +24,14 @@ type AccessLog = {
 };
 
 const UserAccessLogs = () => {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
+
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   // Log page visit
   useEffect(() => {
@@ -101,6 +87,7 @@ const UserAccessLogs = () => {
           title: "Logs Cleared",
           description: "Access logs have been successfully cleared.",
         });
+
         const user = getCurrentUser();
         if (user) {
           logUserActivity({
@@ -119,6 +106,13 @@ const UserAccessLogs = () => {
         });
       });
   };
+
+  const openActivityModal = (userId: string) => {
+    setSelectedUserId(userId);
+    setActivityModalOpen(true);
+  };
+
+  const closeActivityModal = () => setActivityModalOpen(false);
 
   const columns = [
     {
@@ -157,6 +151,12 @@ const UserAccessLogs = () => {
         return <Badge className={getStatusColor(status)}>{status}</Badge>;
       },
     },
+    {
+      header: "Actions",
+      cell: ({ row }: any) => (
+        <Button onClick={() => openActivityModal(row.original.userId)}>View Activity</Button>
+      ),
+    },
   ];
 
   return (
@@ -171,9 +171,7 @@ const UserAccessLogs = () => {
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
               <div>
                 <CardTitle>Access Logs</CardTitle>
-                <CardDescription>
-                  A history of user login activities
-                </CardDescription>
+                <CardDescription>A history of user login activities</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Input
@@ -203,7 +201,16 @@ const UserAccessLogs = () => {
             />
           </CardContent>
         </Card>
-        <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
+
+        <UserActivityDetailsModal
+          userId={selectedUserId}
+          open={activityModalOpen}
+          onClose={closeActivityModal}
+        />
+
+        {/* AlertDialog code as in your original file */}
+
+         <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure you want to clear the logs?</AlertDialogTitle>
@@ -223,6 +230,7 @@ const UserAccessLogs = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
       </div>
     </Layout2>
   );
