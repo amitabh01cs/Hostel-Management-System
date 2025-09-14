@@ -43,14 +43,13 @@ const UserAccessLogs = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const { toast } = useToast();
 
-  // Get logged-in userId (studentId / adminId / securityId)
+  // Get logged-in user's unique id (studentId, adminId, securityId)
   const user = getCurrentUser();
   const loggedInUserId =
     user?.studentId || user?.adminId || user?.securityId || "";
@@ -184,7 +183,7 @@ const UserAccessLogs = () => {
     {
       header: "Actions",
       cell: () => (
-        <Button onClick={openActivityModal}>View Activity</Button> // Fixed logged-in user
+        <Button onClick={openActivityModal}>View Activity</Button> // fixed logged-in user
       ),
     },
   ];
@@ -231,8 +230,6 @@ const UserAccessLogs = () => {
             />
           </CardContent>
         </Card>
-
-        {/* Modal */}
         {activityModalOpen && (
           <div
             style={{
@@ -273,8 +270,6 @@ const UserAccessLogs = () => {
             </div>
           </div>
         )}
-
-        {/* Confirm Clear Logs Dialog */}
         {isConfirmOpen && (
           <div
             style={{
@@ -301,7 +296,9 @@ const UserAccessLogs = () => {
               <h3>Are you sure you want to clear the logs?</h3>
               <p>This action cannot be undone. This will permanently delete all user access logs from the system.</p>
               <div style={{ marginTop: "1rem", textAlign: "right" }}>
-                <Button onClick={() => setIsConfirmOpen(false)} style={{ marginRight: "8px" }}>Cancel</Button>
+                <Button onClick={() => setIsConfirmOpen(false)} style={{ marginRight: "8px" }}>
+                  Cancel
+                </Button>
                 <Button variant="destructive" onClick={handleClearLogs}>Clear Logs</Button>
               </div>
             </div>
